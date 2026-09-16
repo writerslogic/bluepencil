@@ -1,0 +1,16 @@
+name: Fuzz
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  push:
+    paths: ["fuzz/**", "crates/bluepencil-core/src/parse/**"]
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo install cargo-fuzz --locked
+      - run: cargo +nightly fuzz run parse -- -max_total_time=180
