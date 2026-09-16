@@ -13,4 +13,5 @@ categories = ["text-processing"]
 
 [dependencies]
 serde.workspace = true
+similar.workspace = true
 unicode-segmentation.workspace = true

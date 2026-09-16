@@ -21,6 +21,7 @@ mod rhythm;
 mod starters;
 mod tics;
 mod unique;
+mod wdiff;
 
 use anyhow::Result;
 use bluepencil_core::analysis::tally;
@@ -56,6 +57,7 @@ pub fn run(cli: Cli) -> Result<Status> {
         Command::Cliches(a) => cliches::run(&ctx, &a),
         Command::Passive(a) => passive::run(&ctx, &a),
         Command::Overused(a) => overused::run(&ctx, &a),
+        Command::Wdiff(a) => wdiff::run(&ctx, &a),
         Command::Readability(a) => readability::run(&ctx, &a),
         Command::Dialogue(a) => dialogue::run(&ctx, &a),
         Command::Report(a) => report::run(&ctx, &a),

@@ -65,6 +65,7 @@ Pass files or globs, pipe text with `-`, or set `project.files` in `bluepencil.t
 | `readability` | Flesch, Flesch-Kincaid, Gunning Fog, Coleman-Liau, ARI, per section |
 | `dialogue` | Dialogue versus narration, per section |
 | `report` | All of the above in one summary, optionally as HTML |
+| `wdiff` | Word-level diff between two versions of the same text |
 | `check` | Exit nonzero when configured limits are exceeded |
 | `init` | Write a starter `bluepencil.toml` |
 | `completions` | Shell completions |
@@ -77,7 +78,7 @@ Add limits under `[check]` in `bluepencil.toml`, then run `bluepencil check` in 
 
 ## Roadmap
 
-`nominal`, dialogue `tags` and `speakers`, `cast`, `tense` and `pov` drift, `progress` tracking, `wdiff`, `split` and `join`, `.docx` input, a language server, and a VS Code extension.
+`nominal`, dialogue `tags` and `speakers`, `cast`, `tense` and `pov` drift, `progress` tracking, `split` and `join`, `.docx` input, a language server, and a VS Code extension.
 
 ## License
 

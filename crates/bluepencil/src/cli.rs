@@ -95,6 +95,16 @@ pub enum Command {
     },
     /// Print shell completions
     Completions { shell: Shell },
+    /// Word-level diff between two versions of the same text
+    Wdiff(WdiffArgs),
+}
+
+#[derive(Args)]
+pub struct WdiffArgs {
+    /// The earlier version; `-` reads stdin
+    pub old: String,
+    /// The later version; `-` reads stdin
+    pub new: String,
 }
 
 #[derive(Args)]

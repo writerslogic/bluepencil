@@ -2,6 +2,7 @@ pub mod adverbs;
 pub mod cliches;
 pub mod counts;
 pub mod dialogue;
+pub mod diff;
 pub mod distribution;
 pub mod diversity;
 pub mod echoes;
