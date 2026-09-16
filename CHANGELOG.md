@@ -12,3 +12,4 @@ All notable changes to this project are documented here. The format follows [Kee
 - JSON output for every command and a standalone HTML report.
 - `bluepencil.toml` configuration with project globs, custom word lists, and CI thresholds.
 - `[check.severity]` to downgrade a threshold to a non-failing warning.
+- `bluepencil check --since <git-ref>` to scope location-based rules to changed lines.

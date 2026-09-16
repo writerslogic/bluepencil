@@ -86,7 +86,7 @@ pub enum Command {
     /// Everything at a glance
     Report(ReportArgs),
     /// Fail when configured thresholds are exceeded (for CI and hooks)
-    Check(Input),
+    Check(CheckArgs),
     /// Write a starter bluepencil.toml
     Init {
         /// Overwrite an existing file
@@ -185,6 +185,18 @@ pub struct FreqArgs {
     /// Ignore words shorter than this
     #[arg(long, default_value_t = 1)]
     pub min_length: usize,
+}
+
+#[derive(Args)]
+pub struct CheckArgs {
+    #[command(flatten)]
+    pub input: Input,
+    /// Only evaluate line-scoped rules (echoes, adverbs, filter, hedges, tics, passive,
+    /// cliches, repeated openers, monotonous runs, long sentences) against lines changed
+    /// since this git ref; whole-document rules (overused, grade, mattr, dialogue ratio)
+    /// are skipped rather than evaluated against the whole file under a diff-scoped name.
+    #[arg(long, value_name = "GIT_REF")]
+    pub since: Option<String>,
 }
 
 #[derive(Args)]

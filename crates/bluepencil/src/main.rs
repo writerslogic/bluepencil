@@ -3,6 +3,7 @@ pub mod commands;
 mod config;
 mod context;
 mod exit;
+mod gitdiff;
 mod glob;
 mod output;
 

@@ -78,6 +78,8 @@ Every command accepts `--json`. List commands accept `--summary` to group result
 
 Add limits under `[check]` in `bluepencil.toml`, then run `bluepencil check` in a pre-commit hook or CI job. It exits `1` when an `error`-severity limit is exceeded and `2` on errors. Override a rule's severity to `warn` under `[check.severity]` to have it reported without failing the run.
 
+`bluepencil check --since <git-ref>` scopes the location-based rules (echoes, adverbs, filter, hedges, tics, passive, cliches, repeated openers, monotonous runs, longest sentence) to lines changed since that ref, rated against the word count of just those lines rather than the whole file — useful for gating a PR on a long manuscript without flagging pre-existing prose. Whole-document rules (`overused`, `grade`, `mattr`, dialogue ratio) can't be meaningfully scoped to a handful of lines and are skipped, noted in the output.
+
 ## Roadmap
 
 `nominal`, dialogue `tags` and `speakers`, `cast`, `tense` and `pov` drift, `progress` tracking, `.docx` input, a language server, and a VS Code extension.
