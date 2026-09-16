@@ -3,7 +3,7 @@ use bluepencil_core::analysis::counts::Counts;
 use bluepencil_core::analysis::dialogue::{self, DialogueRatio};
 use bluepencil_core::analysis::diversity::{Diversity, diversity};
 use bluepencil_core::analysis::{
-    adverbs, cliches, echoes, filter_words, frequency, hedges, readability, repetition, rhythm, starters, tics,
+    adverbs, cliches, echoes, filter_words, frequency, hedges, passive, readability, repetition, rhythm, starters, tics,
 };
 use bluepencil_core::stats::readability::Readability;
 use bluepencil_core::stats::{Summary, per_thousand};
@@ -30,6 +30,7 @@ pub struct Metrics {
     pub hedges: usize,
     pub cliches: usize,
     pub tics: usize,
+    pub passive: usize,
     pub repeated_starter_runs: usize,
     pub monotonous_runs: usize,
     pub long_sentences: usize,
@@ -61,6 +62,7 @@ pub fn measure(ctx: &Context, docs: &[Document], name: &str) -> Metrics {
         hedges: 0,
         cliches: 0,
         tics: 0,
+        passive: 0,
         repeated_starter_runs: 0,
         monotonous_runs: 0,
         long_sentences: 0,
@@ -83,6 +85,7 @@ pub fn measure(ctx: &Context, docs: &[Document], name: &str) -> Metrics {
         m.hedges += hedges::find(d, lex).len();
         m.cliches += cliches::find(d, lex).len();
         m.tics += tics::find(d, lex).len();
+        m.passive += passive::find(d, lex).len();
         let st = starters::starters(d, cfg.starters.run);
         m.repeated_starter_runs += st.findings.len();
         for (w, n) in st.sentence {
@@ -180,6 +183,7 @@ fn print_human(m: &Metrics, files: &[Metrics]) {
         ("hedges", m.hedges),
         ("cliches", m.cliches),
         ("tics", m.tics),
+        ("passive", m.passive),
         ("repeated openers", m.repeated_starter_runs),
         ("monotonous runs", m.monotonous_runs),
         ("long sentences", m.long_sentences),

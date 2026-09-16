@@ -75,6 +75,8 @@ pub enum Command {
     Adverbs(ListArgs),
     /// Stock phrases and cliches
     Cliches(ListArgs),
+    /// Passive voice constructions (be-verb + past participle)
+    Passive(ListArgs),
     /// Readability scores for each document and section
     Readability(Input),
     /// Dialogue versus narration
