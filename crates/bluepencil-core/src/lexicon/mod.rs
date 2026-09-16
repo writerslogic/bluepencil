@@ -107,6 +107,7 @@ pub struct Lexicons {
     pub hedges: PhraseSet,
     pub cliches: PhraseSet,
     pub tics: PhraseSet,
+    pub irregular_participles: WordSet,
 }
 
 impl Default for Lexicons {
@@ -119,6 +120,7 @@ impl Default for Lexicons {
             hedges: PhraseSet::from_list(lines(HEDGES)),
             cliches: PhraseSet::from_list(lines(CLICHES)),
             tics: PhraseSet::default(),
+            irregular_participles: WordSet::from_list(lines(IRREGULAR_PARTICIPLES)),
         }
     }
 }
