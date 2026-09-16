@@ -60,6 +60,7 @@ Pass files or globs, pipe text with `-`, or set `project.files` in `bluepencil.t
 | `hedges` | Hedges and intensifiers (just, really, very) |
 | `adverbs` | `-ly` adverbs |
 | `cliches` | Stock phrases |
+| `passive` | Passive voice constructions (be-verb + past participle) |
 | `readability` | Flesch, Flesch-Kincaid, Gunning Fog, Coleman-Liau, ARI, per section |
 | `dialogue` | Dialogue versus narration, per section |
 | `report` | All of the above in one summary, optionally as HTML |
@@ -75,7 +76,7 @@ Add limits under `[check]` in `bluepencil.toml`, then run `bluepencil check` in 
 
 ## Roadmap
 
-`overused` (comparison against English baseline frequencies), `passive`, `nominal`, dialogue `tags` and `speakers`, `cast`, `tense` and `pov` drift, `progress` tracking, `wdiff`, `split` and `join`, `.docx` input, a language server, and a VS Code extension.
+`overused` (comparison against English baseline frequencies), `nominal`, dialogue `tags` and `speakers`, `cast`, `tense` and `pov` drift, `progress` tracking, `wdiff`, `split` and `join`, `.docx` input, a language server, and a VS Code extension.
 
 ## License
 
