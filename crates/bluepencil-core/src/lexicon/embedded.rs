@@ -9,8 +9,17 @@ pub const ABBREVIATIONS: &str = include_str!("../../data/abbreviations.txt");
 pub const IRREGULAR_PARTICIPLES: &str = include_str!("../../data/irregular_participles.txt");
 pub const SYLLABLE_EXCEPTIONS: &str = include_str!("../../data/syllable_exceptions.tsv");
 pub const NOT_ADVERBS: &str = include_str!("../../data/not_adverbs.txt");
+pub const ENGLISH_FREQUENCY: &str = include_str!("../../data/english_frequency.tsv");
 
 /// Non-empty, non-comment lines of an embedded list.
 pub fn lines(src: &'static str) -> impl Iterator<Item = &'static str> {
     src.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#'))
+}
+
+/// `word\tper_million` rows of an embedded frequency table.
+pub fn frequency_table(src: &'static str) -> impl Iterator<Item = (&'static str, f64)> {
+    lines(src).filter_map(|l| {
+        let (word, per_million) = l.split_once('\t')?;
+        Some((word, per_million.parse().ok()?))
+    })
 }

@@ -10,6 +10,7 @@ pub mod frequency;
 pub mod hapax;
 pub mod hedges;
 pub mod outline;
+pub mod overuse;
 pub mod passive;
 pub mod readability;
 pub mod repetition;

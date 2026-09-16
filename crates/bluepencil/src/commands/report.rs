@@ -3,7 +3,8 @@ use bluepencil_core::analysis::counts::Counts;
 use bluepencil_core::analysis::dialogue::{self, DialogueRatio};
 use bluepencil_core::analysis::diversity::{Diversity, diversity};
 use bluepencil_core::analysis::{
-    adverbs, cliches, echoes, filter_words, frequency, hedges, passive, readability, repetition, rhythm, starters, tics,
+    adverbs, cliches, echoes, filter_words, frequency, hedges, overuse, passive, readability, repetition, rhythm,
+    starters, tics,
 };
 use bluepencil_core::stats::readability::Readability;
 use bluepencil_core::stats::{Summary, per_thousand};
@@ -31,6 +32,7 @@ pub struct Metrics {
     pub cliches: usize,
     pub tics: usize,
     pub passive: usize,
+    pub overused: usize,
     pub repeated_starter_runs: usize,
     pub monotonous_runs: usize,
     pub long_sentences: usize,
@@ -63,6 +65,7 @@ pub fn measure(ctx: &Context, docs: &[Document], name: &str) -> Metrics {
         cliches: 0,
         tics: 0,
         passive: 0,
+        overused: overuse::overused(docs, lex, 3.0, 3).len(),
         repeated_starter_runs: 0,
         monotonous_runs: 0,
         long_sentences: 0,
@@ -184,6 +187,7 @@ fn print_human(m: &Metrics, files: &[Metrics]) {
         ("cliches", m.cliches),
         ("tics", m.tics),
         ("passive", m.passive),
+        ("overused", m.overused),
         ("repeated openers", m.repeated_starter_runs),
         ("monotonous runs", m.monotonous_runs),
         ("long sentences", m.long_sentences),

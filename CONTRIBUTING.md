@@ -41,3 +41,13 @@ cargo +nightly fuzz run parse
 ## Word lists
 
 Suggestions for the bundled lists are welcome. One entry per line, lowercase, and please keep additions widely applicable rather than genre-specific.
+
+`data/english_frequency.tsv` (the baseline `overused` compares against) is generated,
+not hand-curated: it's the top words by total occurrence in the Google Books Ngram
+Viewer 1-gram English dataset (2012-07-01), freely usable per
+[Google's own terms](https://books.google.com/ngrams/info) (no share-alike, attribution
+appreciated but not required). Regenerate with:
+
+```sh
+uv run python scripts/build_english_frequency.py
+```

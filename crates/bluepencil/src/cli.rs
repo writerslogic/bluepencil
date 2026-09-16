@@ -77,6 +77,8 @@ pub enum Command {
     Cliches(ListArgs),
     /// Passive voice constructions (be-verb + past participle)
     Passive(ListArgs),
+    /// Words used far more than in general English usage
+    Overused(OverusedArgs),
     /// Readability scores for each document and section
     Readability(Input),
     /// Dialogue versus narration
@@ -148,6 +150,18 @@ pub struct FreqArgs {
     /// Ignore words shorter than this
     #[arg(long, default_value_t = 1)]
     pub min_length: usize,
+}
+
+#[derive(Args)]
+pub struct OverusedArgs {
+    #[command(flatten)]
+    pub input: Input,
+    /// Flag a word once it's used at least this many times more than baseline
+    #[arg(long, default_value_t = 3.0)]
+    pub min_ratio: f64,
+    /// Ignore words seen fewer than this many times
+    #[arg(long, default_value_t = 3)]
+    pub min_count: usize,
 }
 
 #[derive(Args)]

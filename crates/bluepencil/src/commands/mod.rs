@@ -12,6 +12,7 @@ mod hedges;
 mod histogram;
 mod init;
 mod outline;
+mod overused;
 mod passive;
 mod readability;
 mod repeats;
@@ -54,6 +55,7 @@ pub fn run(cli: Cli) -> Result<Status> {
         Command::Adverbs(a) => adverbs::run(&ctx, &a),
         Command::Cliches(a) => cliches::run(&ctx, &a),
         Command::Passive(a) => passive::run(&ctx, &a),
+        Command::Overused(a) => overused::run(&ctx, &a),
         Command::Readability(a) => readability::run(&ctx, &a),
         Command::Dialogue(a) => dialogue::run(&ctx, &a),
         Command::Report(a) => report::run(&ctx, &a),

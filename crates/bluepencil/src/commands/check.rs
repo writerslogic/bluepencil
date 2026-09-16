@@ -56,6 +56,7 @@ fn evaluate(c: &Check, m: &Metrics, out: &mut Vec<Violation>) {
     max("hedges per 1k words", c.max_hedges_per_1k, m.per_1k(m.hedges));
     max("tics per 1k words", c.max_tics_per_1k, m.per_1k(m.tics));
     max("passive per 1k words", c.max_passive_per_1k, m.per_1k(m.passive));
+    max("overused words", c.max_overused.map(|v| v as f64), m.overused as f64);
     max("cliches", c.max_cliches.map(|v| v as f64), m.cliches as f64);
     max("repeated opener runs", c.max_repeated_starter_runs.map(|v| v as f64), m.repeated_starter_runs as f64);
     max("monotonous runs", c.max_monotonous_runs.map(|v| v as f64), m.monotonous_runs as f64);

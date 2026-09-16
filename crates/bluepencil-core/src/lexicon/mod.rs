@@ -108,6 +108,8 @@ pub struct Lexicons {
     pub cliches: PhraseSet,
     pub tics: PhraseSet,
     pub irregular_participles: WordSet,
+    /// Baseline English usage, word -> occurrences per million tokens.
+    pub english_frequency: HashMap<String, f64>,
 }
 
 impl Default for Lexicons {
@@ -121,6 +123,7 @@ impl Default for Lexicons {
             cliches: PhraseSet::from_list(lines(CLICHES)),
             tics: PhraseSet::default(),
             irregular_participles: WordSet::from_list(lines(IRREGULAR_PARTICIPLES)),
+            english_frequency: frequency_table(ENGLISH_FREQUENCY).map(|(w, f)| (w.to_string(), f)).collect(),
         }
     }
 }
