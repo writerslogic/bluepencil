@@ -1,0 +1,16 @@
+[package]
+name = "bluepencil-core"
+description = "Text analysis engine for bluepencil, the prose toolkit for writers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+keywords = ["writing", "prose", "text-analysis", "fiction", "editing"]
+categories = ["text-processing"]
+
+[dependencies]
+serde.workspace = true
+unicode-segmentation.workspace = true

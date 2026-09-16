@@ -1,0 +1,45 @@
+# One word or phrase per line. Matching is case-insensitive.
+just
+really
+very
+quite
+rather
+somewhat
+fairly
+pretty
+pretty much
+sort of
+kind of
+a bit
+a little
+slightly
+basically
+actually
+literally
+totally
+completely
+absolutely
+simply
+truly
+definitely
+certainly
+probably
+perhaps
+maybe
+possibly
+seemingly
+apparently
+almost
+nearly
+virtually
+in fact
+of course
+to be honest
+needless to say
+it seems
+i think
+i guess
+i suppose
+some kind of
+all of a sudden
+suddenly

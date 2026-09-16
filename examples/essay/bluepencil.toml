@@ -1,0 +1,6 @@
+[project]
+files = ["essay.md"]
+
+[check]
+max_grade = 12.0
+min_mattr = 0.65

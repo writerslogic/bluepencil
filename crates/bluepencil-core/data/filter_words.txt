@@ -1,0 +1,79 @@
+# One word or phrase per line. Matching is case-insensitive.
+feel
+feels
+felt
+feeling
+see
+sees
+saw
+seeing
+seen
+hear
+hears
+heard
+hearing
+notice
+notices
+noticed
+noticing
+realize
+realizes
+realized
+realizing
+watch
+watches
+watched
+watching
+look
+looks
+looked
+looking
+seem
+seems
+seemed
+seeming
+wonder
+wonders
+wondered
+wondering
+think
+thinks
+thought
+thinking
+know
+knows
+knew
+knowing
+decide
+decides
+decided
+deciding
+sense
+senses
+sensed
+sensing
+smell
+smells
+smelled
+smelt
+taste
+tastes
+tasted
+observe
+observes
+observed
+consider
+considers
+considered
+remember
+remembers
+remembered
+could see
+could hear
+could feel
+could smell
+could tell
+began to
+started to
+seemed to
+appeared to

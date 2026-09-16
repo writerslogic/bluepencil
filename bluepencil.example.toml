@@ -1,0 +1,62 @@
+# bluepencil configuration. Every setting is optional.
+
+[project]
+# Files analyzed when no paths are given on the command line.
+files = ["chapters/*.md"]
+
+[echoes]
+# A word repeated within this many words counts as an echo.
+window = 50
+min_length = 4
+# Names and places are skipped unless this is true.
+include_names = false
+ignore = []
+
+[repeats]
+min = 3
+max = 6
+count = 2
+
+[rhythm]
+# Flag this many consecutive sentences whose lengths differ by at most `tolerance` words.
+run = 4
+tolerance = 3
+# Flag sentences longer than this many words.
+long = 40
+
+[starters]
+run = 3
+
+[tics]
+# Your personal crutch words and phrases.
+words = []
+
+[lexicon]
+# Add entries to the built-in lists.
+filter = []
+hedges = []
+cliches = []
+stopwords = []
+not_adverbs = []
+# Remove entries from every list.
+ignore = []
+
+# Extra list files, one entry per line.
+# [lexicon.files]
+# tics = ["lists/tics.txt"]
+
+[check]
+# `bluepencil check` fails when any of these limits is exceeded.
+# max_echoes_per_1k = 12.0
+# max_adverbs_per_1k = 15.0
+# max_filter_per_1k = 10.0
+# max_hedges_per_1k = 12.0
+# max_tics_per_1k = 5.0
+# max_cliches = 0
+# max_repeated_starter_runs = 2
+# max_monotonous_runs = 3
+# max_sentence_words = 60
+# min_mattr = 0.70
+# max_grade = 10.0
+# min_dialogue_ratio = 0.10
+# max_dialogue_ratio = 0.70

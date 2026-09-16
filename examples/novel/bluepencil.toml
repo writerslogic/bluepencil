@@ -1,0 +1,10 @@
+[project]
+files = ["chapters/*.md"]
+
+[tics]
+words = ["suddenly", "a beat", "for a moment"]
+
+[check]
+max_echoes_per_1k = 20.0
+max_cliches = 0
+max_sentence_words = 45

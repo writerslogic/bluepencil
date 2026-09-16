@@ -1,0 +1,23 @@
+[package]
+name = "bluepencil"
+description = "Prose analysis for writers: echoes, repeats, rhythm, dialogue, readability, and more"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+readme = "../../README.md"
+keywords = ["writing", "prose", "cli", "fiction", "editing"]
+categories = ["command-line-utilities", "text-processing"]
+
+[dependencies]
+bluepencil-core.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+clap_complete.workspace = true
+glob.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true

@@ -1,0 +1,22 @@
+# One entry per line. Matching is case-insensitive.
+said
+says
+say
+saying
+asked
+asks
+ask
+asking
+replied
+answered
+told
+tells
+whispered
+shouted
+yelled
+called
+added
+continued
+explained
+muttered
+murmured

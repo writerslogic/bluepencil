@@ -1,0 +1,8 @@
+[book]
+title = "bluepencil"
+authors = ["David Condrey"]
+language = "en"
+src = "src"
+
+[output.html]
+git-repository-url = "https://github.com/writerslogic/bluepencil"
