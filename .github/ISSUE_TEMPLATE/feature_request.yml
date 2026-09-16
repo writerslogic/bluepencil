@@ -1,0 +1,28 @@
+name: Feature request
+description: A new check, command, or format
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like bluepencil to show you
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of writing is this for
+      options:
+        - Fiction
+        - Nonfiction
+        - Screenplay
+        - Academic
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: An example passage where it would help
+    validations:
+      required: true

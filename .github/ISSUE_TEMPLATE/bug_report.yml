@@ -1,0 +1,31 @@
+name: Bug report
+description: Something counted, split, or flagged incorrectly
+labels: ["bug"]
+body:
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and version
+      description: Output of `bluepencil --version`, and the exact command you ran.
+      render: sh
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Input
+      description: A short excerpt that reproduces it. A snippet beats a whole manuscript.
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
