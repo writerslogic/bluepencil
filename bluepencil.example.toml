@@ -52,6 +52,7 @@ ignore = []
 # max_filter_per_1k = 10.0
 # max_hedges_per_1k = 12.0
 # max_tics_per_1k = 5.0
+# max_passive_per_1k = 15.0
 # max_cliches = 0
 # max_repeated_starter_runs = 2
 # max_monotonous_runs = 3
