@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub const FILE_NAME: &str = "bluepencil.toml";
 pub const TEMPLATE: &str = include_str!("../../../bluepencil.example.toml");
@@ -119,6 +119,23 @@ pub struct Check {
     pub max_grade: Option<f64>,
     pub min_dialogue_ratio: Option<f64>,
     pub max_dialogue_ratio: Option<f64>,
+    /// Per-rule override, keyed by the short rule name (`echoes`, `adverbs`, `mattr`, ...).
+    /// A rule not listed here is `error`.
+    pub severity: std::collections::BTreeMap<String, Severity>,
+}
+
+impl Check {
+    pub fn severity_of(&self, key: &str) -> Severity {
+        self.severity.get(key).copied().unwrap_or_default()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Severity {
+    #[default]
+    Error,
+    Warn,
 }
 
 /// Loads the explicit config or the nearest `bluepencil.toml` above the working directory.
@@ -135,4 +152,31 @@ pub fn load(explicit: Option<&Path>) -> Result<(Config, PathBuf)> {
     let config = toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
     let base = path.parent().map_or(cwd, Path::to_path_buf);
     Ok((config, base))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rule_without_an_override_defaults_to_error() {
+        let check = Check::default();
+        assert_eq!(check.severity_of("adverbs"), Severity::Error);
+    }
+
+    #[test]
+    fn check_severity_table_parses_from_toml() {
+        let config: Config = toml::from_str(
+            r#"
+            [check]
+            max_adverbs_per_1k = 15.0
+
+            [check.severity]
+            adverbs = "warn"
+            "#,
+        )
+        .unwrap();
+        assert_eq!(config.check.severity_of("adverbs"), Severity::Warn);
+        assert_eq!(config.check.severity_of("filter"), Severity::Error);
+    }
 }

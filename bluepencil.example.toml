@@ -62,3 +62,10 @@ ignore = []
 # max_grade = 10.0
 # min_dialogue_ratio = 0.10
 # max_dialogue_ratio = 0.70
+
+# Override a rule's severity to "warn" so it's reported but doesn't fail the run
+# (a rule not listed here is "error"). Keys: echoes, adverbs, filter, hedges, tics,
+# passive, overused, cliches, repeated_starter_runs, monotonous_runs, sentence_words,
+# grade, dialogue_ratio, mattr.
+# [check.severity]
+# adverbs = "warn"

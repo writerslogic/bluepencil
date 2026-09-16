@@ -76,7 +76,7 @@ Every command accepts `--json`. List commands accept `--summary` to group result
 
 ## Continuous integration
 
-Add limits under `[check]` in `bluepencil.toml`, then run `bluepencil check` in a pre-commit hook or CI job. It exits `1` when a limit is exceeded and `2` on errors.
+Add limits under `[check]` in `bluepencil.toml`, then run `bluepencil check` in a pre-commit hook or CI job. It exits `1` when an `error`-severity limit is exceeded and `2` on errors. Override a rule's severity to `warn` under `[check.severity]` to have it reported without failing the run.
 
 ## Roadmap
 
