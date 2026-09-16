@@ -5,4 +5,4 @@
 /editors/vscode/node_modules
 /editors/vscode/out
 *.vsix
-report.html
+/report.html

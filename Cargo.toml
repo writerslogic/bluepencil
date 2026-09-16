@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["crates/bluepencil", "crates/bluepencil-core"]
-exclude = ["crates/bluepencil-lsp", "xtask"]
+exclude = ["crates/bluepencil-lsp", "xtask", "fuzz"]
 
 [workspace.package]
 version = "0.1.0"
@@ -27,3 +27,8 @@ unicode-segmentation = "1"
 lto = "thin"
 codegen-units = 1
 strip = true
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
