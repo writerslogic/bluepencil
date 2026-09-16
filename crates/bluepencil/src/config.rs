@@ -109,6 +109,7 @@ pub struct Check {
     pub max_filter_per_1k: Option<f64>,
     pub max_hedges_per_1k: Option<f64>,
     pub max_tics_per_1k: Option<f64>,
+    pub max_passive_per_1k: Option<f64>,
     pub max_cliches: Option<usize>,
     pub max_repeated_starter_runs: Option<usize>,
     pub max_monotonous_runs: Option<usize>,

@@ -28,6 +28,16 @@ just demo     # run the report on the sample novel
 
 Add tests for logic that is genuinely tricky, such as tokenizing and sentence boundaries. Keep them focused.
 
+## Fuzzing
+
+The parsers (`crates/bluepencil-core/src/parse/`) handle arbitrary user files, so they're
+fuzzed with `cargo-fuzz`:
+
+```sh
+cargo install cargo-fuzz
+cargo +nightly fuzz run parse
+```
+
 ## Word lists
 
 Suggestions for the bundled lists are welcome. One entry per line, lowercase, and please keep additions widely applicable rather than genre-specific.

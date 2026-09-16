@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["crates/bluepencil", "crates/bluepencil-core"]
-exclude = ["crates/bluepencil-lsp", "xtask"]
+exclude = ["crates/bluepencil-lsp", "xtask", "fuzz"]
 
 [workspace.package]
 version = "0.1.0"
