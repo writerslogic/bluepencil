@@ -97,6 +97,31 @@ pub enum Command {
     Completions { shell: Shell },
     /// Word-level diff between two versions of the same text
     Wdiff(WdiffArgs),
+    /// Split a manuscript into one file per heading
+    Split(SplitArgs),
+    /// Concatenate manuscript files into one
+    Join(JoinArgs),
+}
+
+#[derive(Args)]
+pub struct SplitArgs {
+    /// The manuscript to split
+    pub path: String,
+    /// Heading level to split at (1 = #, 2 = ##, ...)
+    #[arg(long, default_value_t = 1)]
+    pub level: u8,
+    /// Directory to write the split files into (defaults to a directory named after the input file)
+    #[arg(long)]
+    pub out: Option<PathBuf>,
+}
+
+#[derive(Args)]
+pub struct JoinArgs {
+    #[command(flatten)]
+    pub input: Input,
+    /// Write to this file instead of stdout
+    #[arg(long)]
+    pub out: Option<PathBuf>,
 }
 
 #[derive(Args)]

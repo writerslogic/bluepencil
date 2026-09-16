@@ -11,6 +11,7 @@ mod hapax;
 mod hedges;
 mod histogram;
 mod init;
+mod join;
 mod outline;
 mod overused;
 mod passive;
@@ -18,6 +19,7 @@ mod readability;
 mod repeats;
 pub mod report;
 mod rhythm;
+mod split;
 mod starters;
 mod tics;
 mod unique;
@@ -58,6 +60,8 @@ pub fn run(cli: Cli) -> Result<Status> {
         Command::Passive(a) => passive::run(&ctx, &a),
         Command::Overused(a) => overused::run(&ctx, &a),
         Command::Wdiff(a) => wdiff::run(&ctx, &a),
+        Command::Split(a) => split::run(&ctx, &a),
+        Command::Join(a) => join::run(&ctx, &a),
         Command::Readability(a) => readability::run(&ctx, &a),
         Command::Dialogue(a) => dialogue::run(&ctx, &a),
         Command::Report(a) => report::run(&ctx, &a),
