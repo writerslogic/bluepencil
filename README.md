@@ -1,6 +1,23 @@
-# bluepencil
+<!-- repo-header:start -->
+<img src="https://raw.githubusercontent.com/writerslogic/bluepencil/main/assets/logo.png" alt="bluepencil logo" width="120" align="left">
 
-Prose analysis for writers. bluepencil reads your manuscript and shows you where to look: words that echo too soon, phrases you repeat, sentences that all start the same way, stretches where the rhythm goes flat, and how much of your story is dialogue.
+<h3>bluepencil</h3>
+
+<p><strong>Prose analysis for writers: echoes, repeats, rhythm, dialogue, readability, and more</strong></p>
+
+<br clear="left">
+
+<p align="center">
+  <a href="https://github.com/writerslogic/bluepencil/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/writerslogic/bluepencil/ci.yml?style=flat-square&labelColor=20232a&branch=main&label=CI" alt="CI"></a>
+  <a href="https://securityscorecards.dev/viewer/?uri=github.com/writerslogic/bluepencil"><img src="https://img.shields.io/ossf-scorecard/github.com/writerslogic/bluepencil?style=flat-square&labelColor=20232a&label=OpenSSF" alt="OpenSSF Scorecard"></a>
+  <a href=".bestpractices.json"><img src="https://img.shields.io/badge/best%20practices-evidence%20reviewed-6a4c93?style=flat-square&labelColor=20232a" alt="Best Practices Evidence"></a>
+  <a href="https://github.com/writerslogic/bluepencil/blob/main/LICENSE-APACHE"><img src="https://img.shields.io/github/license/writerslogic/bluepencil?style=flat-square&labelColor=20232a&color=007ec6&label=license" alt="License"></a>
+  <a href="https://github.com/writerslogic/bluepencil/blob/main/CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/code%20of%20conduct-Contributor%20Covenant%202.1-6a4c93?style=flat-square&labelColor=20232a" alt="Code of Conduct"></a>
+  <a href="https://github.com/sponsors/dcondrey"><img src="https://img.shields.io/badge/GitHub%20Sponsors-Sponsor-EA4AAA?style=flat-square&labelColor=20232a" alt="GitHub Sponsors"></a>
+</p>
+<!-- repo-header:end -->
+
+---
 
 It understands Markdown, Fountain screenplays, and plain text, handles curly quotes and abbreviations correctly, and reports `file:line:column` locations your editor can jump to.
 
