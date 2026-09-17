@@ -85,3 +85,40 @@ fn reports_zero_before_for_a_file_that_did_not_exist_yet() {
 
     std::fs::remove_dir_all(&dir).ok();
 }
+
+#[test]
+fn resolves_project_files_when_run_from_an_unrelated_subdirectory() {
+    let dir = unique_dir();
+    let chapters = dir.join("chapters");
+    let other = dir.join("other");
+    std::fs::create_dir_all(&chapters).unwrap();
+    std::fs::create_dir_all(&other).unwrap();
+    git(&dir, &["init", "-q"]);
+    git(&dir, &["config", "user.email", "test@example.com"]);
+    git(&dir, &["config", "user.name", "Test"]);
+
+    // `project.files` is expanded relative to the config's directory (the repo root here),
+    // not the current one, so running from `other/` (which isn't an ancestor of `chapters/`)
+    // is what surfaces an absolute `doc.name` and exercises the parent-prefix fallback.
+    std::fs::write(dir.join("bluepencil.toml"), "project.files = [\"chapters/*.md\"]\n").unwrap();
+    std::fs::write(chapters.join("one.md"), "One two three.\n").unwrap();
+    git(&dir, &["add", "-A"]);
+    git(&dir, &["commit", "-q", "-m", "first"]);
+
+    std::fs::write(chapters.join("one.md"), "One two three four five.\n").unwrap();
+    git(&dir, &["add", "-A"]);
+    git(&dir, &["commit", "-q", "-m", "second"]);
+
+    let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
+        .current_dir(&other)
+        .args(["--json", "progress", "--since", "HEAD~1"])
+        .output()
+        .expect("running bluepencil");
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["total_before"], 3);
+    assert_eq!(json["total_after"], 5);
+
+    std::fs::remove_dir_all(&dir).ok();
+}

@@ -95,15 +95,26 @@ fn signed(n: i64) -> String {
 /// `canonicalize`) with git's: on Windows those two can normalize the same location
 /// differently (verbatim `\\?\` prefixes, short vs. long names), so a `strip_prefix` between
 /// them can fail even for a file that's genuinely inside the repo.
+///
+/// A name can come back absolute from `Context::documents` when `project.files` is expanded
+/// relative to the config's directory rather than the current one (e.g. running `progress`
+/// with no path arguments from a subdirectory the target file isn't under). That case is
+/// resolved the same way, by asking git for the *parent directory's* prefix, rather than by
+/// comparing filesystem paths ourselves.
 fn repo_relative_path(prefix: &str, name: &str) -> Result<String> {
     if name == "<stdin>" {
         bail!("progress needs real files to compare against git history, not stdin");
     }
-    let name = name.replace('\\', "/");
-    if Path::new(&name).is_absolute() {
-        bail!("progress only supports files given as relative paths, not {name}");
+    let path = Path::new(name);
+    if !path.is_absolute() {
+        return Ok(format!("{prefix}{}", name.replace('\\', "/")));
     }
-    Ok(format!("{prefix}{name}"))
+    let parent = path.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or_else(|| Path::new("."));
+    let file_name =
+        path.file_name().with_context(|| format!("{name} has no file name"))?.to_string_lossy().replace('\\', "/");
+    let parent_prefix = git_output_in(parent, &["rev-parse", "--show-prefix"])
+        .with_context(|| format!("{name} is outside the git repository"))?;
+    Ok(format!("{}{file_name}", parent_prefix.trim()))
 }
 
 fn word_count_at(rev: &str, git_path: &str) -> Result<usize> {
@@ -156,6 +167,14 @@ fn git_output(args: &[&str]) -> Result<String> {
     let output = Command::new("git").args(args).output().context("running git")?;
     if !output.status.success() {
         bail!("git {}: {}", args.join(" "), String::from_utf8_lossy(&output.stderr).trim());
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+fn git_output_in(dir: &Path, args: &[&str]) -> Result<String> {
+    let output = Command::new("git").arg("-C").arg(dir).args(args).output().context("running git")?;
+    if !output.status.success() {
+        bail!("git -C {} {}: {}", dir.display(), args.join(" "), String::from_utf8_lossy(&output.stderr).trim());
     }
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
