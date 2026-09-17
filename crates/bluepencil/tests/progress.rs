@@ -24,22 +24,26 @@ fn git(dir: &Path, args: &[&str]) {
 #[test]
 fn reports_word_count_change_since_a_commit() {
     let dir = unique_dir();
-    std::fs::create_dir_all(&dir).unwrap();
+    let chapters = dir.join("chapters");
+    std::fs::create_dir_all(&chapters).unwrap();
     git(&dir, &["init", "-q"]);
     git(&dir, &["config", "user.email", "test@example.com"]);
     git(&dir, &["config", "user.name", "Test"]);
 
-    std::fs::write(dir.join("chapter.md"), "One two three four five.\n").unwrap();
-    git(&dir, &["add", "chapter.md"]);
+    std::fs::write(chapters.join("one.md"), "One two three four five.\n").unwrap();
+    git(&dir, &["add", "chapters/one.md"]);
     git(&dir, &["commit", "-q", "-m", "first"]);
 
-    std::fs::write(dir.join("chapter.md"), "One two three four five six seven eight nine ten.\n").unwrap();
-    git(&dir, &["add", "chapter.md"]);
+    std::fs::write(chapters.join("one.md"), "One two three four five six seven eight nine ten.\n").unwrap();
+    git(&dir, &["add", "chapters/one.md"]);
     git(&dir, &["commit", "-q", "-m", "second"]);
 
+    // A glob pattern rather than a literal filename: on Windows, `glob::glob` returns
+    // native-separator (`\`) PathBufs, which is what actually exercised the bug where
+    // progress compared a filesystem path against a git-relative one.
     let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
         .current_dir(&dir)
-        .args(["--json", "progress", "--since", "HEAD~1", "chapter.md"])
+        .args(["--json", "progress", "--since", "HEAD~1", "chapters/*.md"])
         .output()
         .expect("running bluepencil");
     assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));

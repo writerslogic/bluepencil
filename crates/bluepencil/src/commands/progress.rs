@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 
 use anyhow::{Context as _, Result, bail};
@@ -23,14 +23,14 @@ impl Delta {
 }
 
 pub fn run(ctx: &Context, args: &ProgressArgs) -> Result<()> {
-    let repo_root = repo_root()?;
+    let prefix = repo_prefix()?;
     let since = resolve_ref(&args.since)?;
     let until = args.until.as_deref().map(resolve_ref).transpose()?;
 
     let docs = ctx.documents(&args.input)?;
     let mut deltas = Vec::with_capacity(docs.len());
     for doc in &docs {
-        let rel = repo_relative_path(&repo_root, &doc.name)?;
+        let rel = repo_relative_path(&prefix, &doc.name)?;
         let before = word_count_at(&since, &rel)?;
         let after = match &until {
             Some(rev) => word_count_at(rev, &rel)?,
@@ -89,31 +89,32 @@ fn signed(n: i64) -> String {
     if n >= 0 { format!("+{n}") } else { n.to_string() }
 }
 
-fn repo_relative_path(repo_root: &Path, name: &str) -> Result<PathBuf> {
+/// Turns a document name (relative to the current directory, in whatever separator style the
+/// platform's `Path::display` used) into a path relative to the repo root, in git's own `/`
+/// style. This deliberately never mixes filesystem-derived paths (`std::env::current_dir`,
+/// `canonicalize`) with git's: on Windows those two can normalize the same location
+/// differently (verbatim `\\?\` prefixes, short vs. long names), so a `strip_prefix` between
+/// them can fail even for a file that's genuinely inside the repo.
+fn repo_relative_path(prefix: &str, name: &str) -> Result<String> {
     if name == "<stdin>" {
         bail!("progress needs real files to compare against git history, not stdin");
     }
-    let path = Path::new(name);
-    let absolute = if path.is_absolute() { path.to_path_buf() } else { std::env::current_dir()?.join(path) };
-    absolute
-        .strip_prefix(repo_root)
-        .map(Path::to_path_buf)
-        .with_context(|| format!("{name} is outside the git repository at {}", repo_root.display()))
+    let name = name.replace('\\', "/");
+    if Path::new(&name).is_absolute() {
+        bail!("progress only supports files given as relative paths, not {name}");
+    }
+    Ok(format!("{prefix}{name}"))
 }
 
-fn word_count_at(rev: &str, path: &Path) -> Result<usize> {
-    // git's tree paths always use `/`, even on Windows, so `Path::display` (which emits `\`
-    // there) would silently fail to match anything and word_count_at would report 0 for
-    // every file on Windows instead of the real historical count.
-    let git_path = path.to_string_lossy().replace('\\', "/");
+fn word_count_at(rev: &str, git_path: &str) -> Result<usize> {
     let spec = format!("{rev}:{git_path}");
     let output = Command::new("git").args(["show", &spec]).output().context("running git show")?;
     if !output.status.success() {
         return Ok(0);
     }
     let text = String::from_utf8_lossy(&output.stdout).into_owned();
-    let format = Format::from_path(path);
-    Ok(Document::parse(path.display().to_string(), text, format).word_count())
+    let format = Format::from_path(Path::new(git_path));
+    Ok(Document::parse(git_path.to_string(), text, format).word_count())
 }
 
 fn resolve_ref(spec: &str) -> Result<String> {
@@ -143,10 +144,12 @@ fn looks_like_date(spec: &str) -> bool {
     )
 }
 
-fn repo_root() -> Result<PathBuf> {
+/// The path from the repo root to the current directory, git's own accounting (e.g.
+/// `crates/bluepencil/`, or empty at the root) rather than anything derived from `std::fs`.
+fn repo_prefix() -> Result<String> {
     let text =
-        git_output(&["rev-parse", "--show-toplevel"]).context("progress requires running inside a git repository")?;
-    Ok(PathBuf::from(text.trim()))
+        git_output(&["rev-parse", "--show-prefix"]).context("progress requires running inside a git repository")?;
+    Ok(text.trim().to_string())
 }
 
 fn git_output(args: &[&str]) -> Result<String> {
