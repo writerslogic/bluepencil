@@ -122,3 +122,37 @@ fn resolves_project_files_when_run_from_an_unrelated_subdirectory() {
 
     std::fs::remove_dir_all(&dir).ok();
 }
+
+#[test]
+fn resolves_a_relative_path_containing_dot_dot() {
+    let dir = unique_dir();
+    let chapters = dir.join("chapters");
+    std::fs::create_dir_all(&chapters).unwrap();
+    git(&dir, &["init", "-q"]);
+    git(&dir, &["config", "user.email", "test@example.com"]);
+    git(&dir, &["config", "user.name", "Test"]);
+
+    std::fs::write(dir.join("chapter.md"), "One two three.\n").unwrap();
+    git(&dir, &["add", "chapter.md"]);
+    git(&dir, &["commit", "-q", "-m", "first"]);
+
+    std::fs::write(dir.join("chapter.md"), "One two three four five.\n").unwrap();
+    git(&dir, &["add", "chapter.md"]);
+    git(&dir, &["commit", "-q", "-m", "second"]);
+
+    // `git show <rev>:<path>` does not normalize a `..` the way a shell would, so this must
+    // resolve through the parent directory's own git-reported prefix rather than string
+    // concatenation, or it silently reports the file as brand new (before == 0).
+    let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
+        .current_dir(&chapters)
+        .args(["--json", "progress", "--since", "HEAD~1", "../chapter.md"])
+        .output()
+        .expect("running bluepencil");
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["total_before"], 3);
+    assert_eq!(json["total_after"], 5);
+
+    std::fs::remove_dir_all(&dir).ok();
+}

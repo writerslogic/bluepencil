@@ -23,14 +23,13 @@ impl Delta {
 }
 
 pub fn run(ctx: &Context, args: &ProgressArgs) -> Result<()> {
-    let prefix = repo_prefix()?;
     let since = resolve_ref(&args.since)?;
     let until = args.until.as_deref().map(resolve_ref).transpose()?;
 
     let docs = ctx.documents(&args.input)?;
     let mut deltas = Vec::with_capacity(docs.len());
     for doc in &docs {
-        let rel = repo_relative_path(&prefix, &doc.name)?;
+        let rel = repo_relative_path(&doc.name)?;
         let before = word_count_at(&since, &rel)?;
         let after = match &until {
             Some(rev) => word_count_at(rev, &rel)?,
@@ -89,26 +88,22 @@ fn signed(n: i64) -> String {
     if n >= 0 { format!("+{n}") } else { n.to_string() }
 }
 
-/// Turns a document name (relative to the current directory, in whatever separator style the
-/// platform's `Path::display` used) into a path relative to the repo root, in git's own `/`
-/// style. This deliberately never mixes filesystem-derived paths (`std::env::current_dir`,
-/// `canonicalize`) with git's: on Windows those two can normalize the same location
-/// differently (verbatim `\\?\` prefixes, short vs. long names), so a `strip_prefix` between
-/// them can fail even for a file that's genuinely inside the repo.
+/// Turns a document name (relative to the current directory, or absolute when
+/// `Context::documents` expanded `project.files` against the config's directory instead) into
+/// a path relative to the repo root, in git's own `/` style.
 ///
-/// A name can come back absolute from `Context::documents` when `project.files` is expanded
-/// relative to the config's directory rather than the current one (e.g. running `progress`
-/// with no path arguments from a subdirectory the target file isn't under). That case is
-/// resolved the same way, by asking git for the *parent directory's* prefix, rather than by
-/// comparing filesystem paths ourselves.
-fn repo_relative_path(prefix: &str, name: &str) -> Result<String> {
+/// This asks git itself, via the name's *parent* directory, rather than computing it with
+/// `std::env::current_dir` / `strip_prefix`: on Windows those filesystem APIs can normalize a
+/// location differently than `git rev-parse` does (verbatim `\\?\` prefixes, short vs. long
+/// names), and a name containing `..` (e.g. `../../README.md` from a subdirectory) isn't
+/// normalized by `git show <rev>:<path>` the way a shell would. `git -C <parent>` resolves
+/// both `..` and the platform's own path quirks the same way it will when `word_count_at`
+/// later runs `git show` from this same process.
+fn repo_relative_path(name: &str) -> Result<String> {
     if name == "<stdin>" {
         bail!("progress needs real files to compare against git history, not stdin");
     }
     let path = Path::new(name);
-    if !path.is_absolute() {
-        return Ok(format!("{prefix}{}", name.replace('\\', "/")));
-    }
     let parent = path.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or_else(|| Path::new("."));
     let file_name =
         path.file_name().with_context(|| format!("{name} has no file name"))?.to_string_lossy().replace('\\', "/");
@@ -153,14 +148,6 @@ fn looks_like_date(spec: &str) -> bool {
         (parts.next(), parts.next(), parts.next(), parts.next()),
         (Some(y), Some(m), Some(d), None) if digits(y, 4) && digits(m, 2) && digits(d, 2)
     )
-}
-
-/// The path from the repo root to the current directory, git's own accounting (e.g.
-/// `crates/bluepencil/`, or empty at the root) rather than anything derived from `std::fs`.
-fn repo_prefix() -> Result<String> {
-    let text =
-        git_output(&["rev-parse", "--show-prefix"]).context("progress requires running inside a git repository")?;
-    Ok(text.trim().to_string())
 }
 
 fn git_output(args: &[&str]) -> Result<String> {
