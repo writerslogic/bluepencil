@@ -6,6 +6,7 @@ use bluepencil_core::{Document, Format};
 
 use crate::cli::ProgressArgs;
 use crate::context::Context;
+use crate::gitdiff::repo_relative_path;
 use crate::output::human::thousands;
 use crate::output::json;
 use crate::output::table::{Align, Table};
@@ -89,30 +90,6 @@ fn signed(n: i64) -> String {
     if n >= 0 { format!("+{n}") } else { n.to_string() }
 }
 
-/// Turns a document name (relative to the current directory, or absolute when
-/// `Context::documents` expanded `project.files` against the config's directory instead) into
-/// a path relative to the repo root, in git's own `/` style.
-///
-/// This asks git itself, via the name's *parent* directory, rather than computing it with
-/// `std::env::current_dir` / `strip_prefix`: on Windows those filesystem APIs can normalize a
-/// location differently than `git rev-parse` does (verbatim `\\?\` prefixes, short vs. long
-/// names), and a name containing `..` (e.g. `../../README.md` from a subdirectory) isn't
-/// normalized by `git show <rev>:<path>` the way a shell would. `git -C <parent>` resolves
-/// both `..` and the platform's own path quirks the same way it will when `word_count_at`
-/// later runs `git show` from this same process.
-fn repo_relative_path(name: &str) -> Result<String> {
-    if name == "<stdin>" {
-        bail!("progress needs real files to compare against git history, not stdin");
-    }
-    let path = Path::new(name);
-    let parent = path.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or_else(|| Path::new("."));
-    let file_name =
-        path.file_name().with_context(|| format!("{name} has no file name"))?.to_string_lossy().replace('\\', "/");
-    let parent_prefix = git_output_in(parent, &["rev-parse", "--show-prefix"])
-        .with_context(|| format!("{name} is outside the git repository"))?;
-    Ok(format!("{}{file_name}", parent_prefix.trim()))
-}
-
 fn word_count_at(rev: &str, git_path: &str) -> Result<usize> {
     let spec = format!("{rev}:{git_path}");
     let output = Command::new("git").args(["show", &spec]).output().context("running git show")?;
@@ -155,14 +132,6 @@ fn git_output(args: &[&str]) -> Result<String> {
     let output = Command::new("git").args(args).output().context("running git")?;
     if !output.status.success() {
         bail!("git {}: {}", args.join(" "), String::from_utf8_lossy(&output.stderr).trim());
-    }
-    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-}
-
-fn git_output_in(dir: &Path, args: &[&str]) -> Result<String> {
-    let output = Command::new("git").arg("-C").arg(dir).args(args).output().context("running git")?;
-    if !output.status.success() {
-        bail!("git -C {} {}: {}", dir.display(), args.join(" "), String::from_utf8_lossy(&output.stderr).trim());
     }
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }

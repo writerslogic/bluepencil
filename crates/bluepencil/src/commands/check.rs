@@ -36,7 +36,7 @@ pub fn run(ctx: &Context, args: &CheckArgs) -> Result<Status> {
     for doc in &docs {
         match &args.since {
             Some(since) => {
-                let ranges = gitdiff::changed_lines(since, std::path::Path::new(&doc.name))?;
+                let ranges = gitdiff::changed_lines(since, &doc.name)?;
                 if !ranges.is_empty() {
                     evaluate_scoped(ctx, doc, &ranges, &mut violations);
                 }
