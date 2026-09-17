@@ -15,6 +15,7 @@ mod join;
 mod outline;
 mod overused;
 mod passive;
+mod progress;
 mod readability;
 mod repeats;
 pub mod report;
@@ -62,6 +63,7 @@ pub fn run(cli: Cli) -> Result<Status> {
         Command::Wdiff(a) => wdiff::run(&ctx, &a),
         Command::Split(a) => split::run(&ctx, &a),
         Command::Join(a) => join::run(&ctx, &a),
+        Command::Progress(a) => progress::run(&ctx, &a),
         Command::Readability(a) => readability::run(&ctx, &a),
         Command::Dialogue(a) => dialogue::run(&ctx, &a),
         Command::Report(a) => report::run(&ctx, &a),

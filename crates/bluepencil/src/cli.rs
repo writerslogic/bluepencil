@@ -101,6 +101,8 @@ pub enum Command {
     Split(SplitArgs),
     /// Concatenate manuscript files into one
     Join(JoinArgs),
+    /// Word count change per file since a git commit or date
+    Progress(ProgressArgs),
 }
 
 #[derive(Args)]
@@ -122,6 +124,18 @@ pub struct JoinArgs {
     /// Write to this file instead of stdout
     #[arg(long)]
     pub out: Option<PathBuf>,
+}
+
+#[derive(Args)]
+pub struct ProgressArgs {
+    #[command(flatten)]
+    pub input: Input,
+    /// Earlier commit, tag, or date (e.g. `HEAD~10`, `2026-09-01`) to compare from
+    #[arg(long)]
+    pub since: String,
+    /// Later commit to compare to; defaults to the current working tree
+    #[arg(long)]
+    pub until: Option<String>,
 }
 
 #[derive(Args)]
