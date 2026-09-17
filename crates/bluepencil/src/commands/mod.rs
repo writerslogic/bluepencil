@@ -37,7 +37,7 @@ use crate::output::{self, human};
 
 pub fn run(cli: Cli) -> Result<Status> {
     match cli.command {
-        Command::Init { force } => return init::run(force),
+        Command::Init { force, genre } => return init::run(force, genre),
         Command::Completions { shell } => return completions::run(shell),
         _ => {}
     }

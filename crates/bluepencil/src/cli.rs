@@ -37,6 +37,13 @@ pub enum InputFormat {
     Fountain,
 }
 
+#[derive(Clone, Copy, ValueEnum)]
+pub enum Genre {
+    Novel,
+    Essay,
+    Screenplay,
+}
+
 #[derive(Args, Clone)]
 pub struct Input {
     /// Files or glob patterns; `-` reads stdin. Defaults to `project.files` in bluepencil.toml
@@ -92,6 +99,9 @@ pub enum Command {
         /// Overwrite an existing file
         #[arg(long)]
         force: bool,
+        /// Start from a genre-tuned preset instead of the generic template
+        #[arg(long, value_enum)]
+        genre: Option<Genre>,
     },
     /// Print shell completions
     Completions { shell: Shell },

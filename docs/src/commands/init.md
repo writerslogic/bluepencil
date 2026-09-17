@@ -9,3 +9,4 @@ bluepencil init
 ## Options
 
 - `--force` overwrite an existing file
+- `--genre <novel|essay|screenplay>` start from a genre-tuned preset instead of the generic template
