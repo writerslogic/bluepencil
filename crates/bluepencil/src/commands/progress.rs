@@ -102,7 +102,11 @@ fn repo_relative_path(repo_root: &Path, name: &str) -> Result<PathBuf> {
 }
 
 fn word_count_at(rev: &str, path: &Path) -> Result<usize> {
-    let spec = format!("{rev}:{}", path.display());
+    // git's tree paths always use `/`, even on Windows, so `Path::display` (which emits `\`
+    // there) would silently fail to match anything and word_count_at would report 0 for
+    // every file on Windows instead of the real historical count.
+    let git_path = path.to_string_lossy().replace('\\', "/");
+    let spec = format!("{rev}:{git_path}");
     let output = Command::new("git").args(["show", &spec]).output().context("running git show")?;
     if !output.status.success() {
         return Ok(0);
