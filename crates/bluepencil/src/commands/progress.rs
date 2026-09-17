@@ -23,6 +23,7 @@ impl Delta {
 }
 
 pub fn run(ctx: &Context, args: &ProgressArgs) -> Result<()> {
+    git_output(&["rev-parse", "--git-dir"]).context("progress requires running inside a git repository")?;
     let since = resolve_ref(&args.since)?;
     let until = args.until.as_deref().map(resolve_ref).transpose()?;
 
