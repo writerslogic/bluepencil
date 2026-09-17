@@ -159,6 +159,42 @@ fn follows_a_rename_instead_of_reporting_the_file_as_brand_new() {
 }
 
 #[test]
+fn compares_two_historical_points_for_a_file_since_deleted() {
+    let dir = unique_dir();
+    std::fs::create_dir_all(&dir).unwrap();
+    git(&dir, &["init", "-q"]);
+    git(&dir, &["config", "user.email", "test@example.com"]);
+    git(&dir, &["config", "user.name", "Test"]);
+
+    std::fs::write(dir.join("chapter.md"), "One two three.\n").unwrap();
+    git(&dir, &["add", "chapter.md"]);
+    git(&dir, &["commit", "-q", "-m", "first"]);
+
+    std::fs::write(dir.join("chapter.md"), "One two three four five.\n").unwrap();
+    git(&dir, &["add", "chapter.md"]);
+    git(&dir, &["commit", "-q", "-m", "second"]);
+
+    std::fs::remove_file(dir.join("chapter.md")).unwrap();
+    git(&dir, &["add", "-A"]);
+    git(&dir, &["commit", "-q", "-m", "delete"]);
+
+    // Neither commit has the file on disk today, so `ctx.documents` (which reads the file
+    // set off disk) can't see it at all; --until must resolve both endpoints from git alone.
+    let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
+        .current_dir(&dir)
+        .args(["--json", "progress", "--since", "HEAD~2", "--until", "HEAD~1", "chapter.md"])
+        .output()
+        .expect("running bluepencil");
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["total_before"], 3);
+    assert_eq!(json["total_after"], 5);
+
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
 fn resolves_a_relative_path_containing_dot_dot() {
     let dir = unique_dir();
     let chapters = dir.join("chapters");

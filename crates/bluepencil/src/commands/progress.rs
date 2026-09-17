@@ -4,7 +4,7 @@ use std::process::Command;
 use anyhow::{Context as _, Result, bail};
 use bluepencil_core::{Document, Format};
 
-use crate::cli::ProgressArgs;
+use crate::cli::{Input, ProgressArgs};
 use crate::context::Context;
 use crate::gitdiff::repo_relative_path;
 use crate::output::human::thousands;
@@ -28,18 +28,27 @@ pub fn run(ctx: &Context, args: &ProgressArgs) -> Result<()> {
     let since = resolve_ref(&args.since)?;
     let until = args.until.as_deref().map(resolve_ref).transpose()?;
 
-    let docs = ctx.documents(&args.input)?;
-    let mut deltas = Vec::with_capacity(docs.len());
-    for doc in &docs {
-        let rel = repo_relative_path(&doc.name)?;
-        let before_boundary = until.as_deref().unwrap_or("HEAD");
-        let before = resolve_word_count(&since, before_boundary, &rel)?;
-        let after = match &until {
-            Some(rev) => resolve_word_count(rev, "HEAD", &rel)?,
-            None => doc.word_count(),
-        };
-        deltas.push(Delta { path: doc.name.clone(), before, after });
-    }
+    let deltas = match ctx.documents(&args.input) {
+        Ok(docs) => docs
+            .iter()
+            .map(|doc| {
+                let rel = repo_relative_path(&doc.name)?;
+                let before_boundary = until.as_deref().unwrap_or("HEAD");
+                let before = resolve_word_count(&since, before_boundary, &rel)?;
+                let after = match &until {
+                    Some(rev) => resolve_word_count(rev, "HEAD", &rel)?,
+                    None => doc.word_count(),
+                };
+                Ok(Delta { path: doc.name.clone(), before, after })
+            })
+            .collect::<Result<Vec<_>>>()?,
+        // The file set is normally read off disk, which can't see a path that existed only
+        // between `since` and `until` and was deleted before now. When every requested path
+        // is a literal name (no glob, no stdin) and `--until` bounds the comparison to two
+        // historical points, fall back to resolving both endpoints from git alone instead of
+        // surfacing the disk error; any other failure (globs, stdin, no `--until`) still does.
+        Err(disk_err) => historical_deltas(&args.input, &since, until.as_deref(), disk_err)?,
+    };
 
     let total_before: usize = deltas.iter().map(|d| d.before).sum();
     let total_after: usize = deltas.iter().map(|d| d.after).sum();
@@ -85,6 +94,31 @@ pub fn run(ctx: &Context, args: &ProgressArgs) -> Result<()> {
     }
     t.print();
     Ok(())
+}
+
+/// Resolves each requested path purely from git history, for a request `Context::documents`
+/// couldn't satisfy off disk. Declines (returning the original disk error) unless every path
+/// is a literal name and `--until` gives a second historical boundary to resolve against,
+/// since a glob pattern or stdin has no meaning against a tree that no longer has the file.
+fn historical_deltas(input: &Input, since: &str, until: Option<&str>, disk_err: anyhow::Error) -> Result<Vec<Delta>> {
+    let Some(until) = until else { return Err(disk_err) };
+    if input.files.is_empty() || input.files.iter().any(|f| f == "-" || has_glob_chars(f)) {
+        return Err(disk_err);
+    }
+    input
+        .files
+        .iter()
+        .map(|name| {
+            let rel = repo_relative_path(name)?;
+            let before = resolve_word_count(since, until, &rel)?;
+            let after = resolve_word_count(until, "HEAD", &rel)?;
+            Ok(Delta { path: name.clone(), before, after })
+        })
+        .collect()
+}
+
+fn has_glob_chars(s: &str) -> bool {
+    s.contains(['*', '?', '['])
 }
 
 fn signed(n: i64) -> String {
