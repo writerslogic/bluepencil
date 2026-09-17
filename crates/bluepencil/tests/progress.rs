@@ -124,6 +124,41 @@ fn resolves_project_files_when_run_from_an_unrelated_subdirectory() {
 }
 
 #[test]
+fn follows_a_rename_instead_of_reporting_the_file_as_brand_new() {
+    let dir = unique_dir();
+    std::fs::create_dir_all(&dir).unwrap();
+    git(&dir, &["init", "-q"]);
+    git(&dir, &["config", "user.email", "test@example.com"]);
+    git(&dir, &["config", "user.name", "Test"]);
+
+    // Content large and similar enough (adding one line to fifty) that git's default rename
+    // similarity heuristic actually pairs old.md with new.md; a short file wouldn't trigger it.
+    let body: String = (1..=50).map(|n| format!("word{n} ")).collect();
+    std::fs::write(dir.join("old.md"), &body).unwrap();
+    git(&dir, &["add", "old.md"]);
+    git(&dir, &["commit", "-q", "-m", "first"]);
+
+    git(&dir, &["mv", "old.md", "new.md"]);
+    let extended = format!("{body}word51 ");
+    std::fs::write(dir.join("new.md"), &extended).unwrap();
+    git(&dir, &["add", "-A"]);
+    git(&dir, &["commit", "-q", "-m", "rename and extend"]);
+
+    let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
+        .current_dir(&dir)
+        .args(["--json", "progress", "--since", "HEAD~1", "new.md"])
+        .output()
+        .expect("running bluepencil");
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["total_before"], 50, "the rename should carry the before-count, not report 0: {json}");
+    assert_eq!(json["total_after"], 51);
+
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
 fn resolves_a_relative_path_containing_dot_dot() {
     let dir = unique_dir();
     let chapters = dir.join("chapters");

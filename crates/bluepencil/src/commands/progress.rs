@@ -32,9 +32,10 @@ pub fn run(ctx: &Context, args: &ProgressArgs) -> Result<()> {
     let mut deltas = Vec::with_capacity(docs.len());
     for doc in &docs {
         let rel = repo_relative_path(&doc.name)?;
-        let before = word_count_at(&since, &rel)?;
+        let before_boundary = until.as_deref().unwrap_or("HEAD");
+        let before = resolve_word_count(&since, before_boundary, &rel)?;
         let after = match &until {
-            Some(rev) => word_count_at(rev, &rel)?,
+            Some(rev) => resolve_word_count(rev, "HEAD", &rel)?,
             None => doc.word_count(),
         };
         deltas.push(Delta { path: doc.name.clone(), before, after });
@@ -90,15 +91,69 @@ fn signed(n: i64) -> String {
     if n >= 0 { format!("+{n}") } else { n.to_string() }
 }
 
-fn word_count_at(rev: &str, git_path: &str) -> Result<usize> {
+/// Word count of `current_path` as of `rev`, falling back to the name it had at `rev` if it
+/// was later renamed to `current_path` by the time of `later_rev`. Without this, a file
+/// renamed between `rev` and `later_rev` reports a `before` of 0 (git show finds nothing
+/// under the new name at the old revision) and so a total word count as if newly written,
+/// even though the content carried over.
+fn resolve_word_count(rev: &str, later_rev: &str, current_path: &str) -> Result<usize> {
+    if let Some(text) = git_show(rev, current_path)? {
+        return Ok(count_words(current_path, text));
+    }
+    if let Some(old_path) = renamed_from(rev, later_rev, current_path)?
+        && let Some(text) = git_show(rev, &old_path)?
+    {
+        return Ok(count_words(&old_path, text));
+    }
+    Ok(0)
+}
+
+fn count_words(git_path: &str, text: String) -> usize {
+    let format = Format::from_path(Path::new(git_path));
+    Document::parse(git_path.to_string(), text, format).word_count()
+}
+
+/// `None` when the file genuinely doesn't exist at `rev` (e.g. not yet written); propagates
+/// any other git failure instead of silently treating it the same way.
+fn git_show(rev: &str, git_path: &str) -> Result<Option<String>> {
     let spec = format!("{rev}:{git_path}");
     let output = Command::new("git").args(["show", &spec]).output().context("running git show")?;
-    if !output.status.success() {
-        return Ok(0);
+    if output.status.success() {
+        return Ok(Some(String::from_utf8_lossy(&output.stdout).into_owned()));
     }
-    let text = String::from_utf8_lossy(&output.stdout).into_owned();
-    let format = Format::from_path(Path::new(git_path));
-    Ok(Document::parse(git_path.to_string(), text, format).word_count())
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stderr.contains("does not exist in") || stderr.contains("exists on disk, but not in") {
+        return Ok(None);
+    }
+    bail!("git show {spec}: {}", stderr.trim());
+}
+
+/// The name `current_path` had at `rev`, if git's own rename detection pairs it with a
+/// differently-named file by `later_rev`. `git diff`'s pathspec restricts rename detection to
+/// the intersection of what's present on both sides, so this deliberately runs unrestricted
+/// and filters the output instead of passing `current_path` as a pathspec.
+fn renamed_from(rev: &str, later_rev: &str, current_path: &str) -> Result<Option<String>> {
+    let output = Command::new("git")
+        .args(["diff", "-M", "--name-status", rev, later_rev])
+        .output()
+        .context("running git diff")?;
+    if !output.status.success() {
+        bail!("git diff -M --name-status {rev} {later_rev}: {}", String::from_utf8_lossy(&output.stderr).trim());
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    for line in text.lines() {
+        let mut parts = line.split('\t');
+        let Some(status) = parts.next() else { continue };
+        if !status.starts_with('R') {
+            continue;
+        }
+        if let (Some(from), Some(to)) = (parts.next(), parts.next())
+            && to == current_path
+        {
+            return Ok(Some(from.to_string()));
+        }
+    }
+    Ok(None)
 }
 
 fn resolve_ref(spec: &str) -> Result<String> {
