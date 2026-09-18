@@ -120,4 +120,3 @@ fn has_glob_chars(s: &str) -> bool {
 fn signed(n: i64) -> String {
     if n >= 0 { format!("+{n}") } else { n.to_string() }
 }
-

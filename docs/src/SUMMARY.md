@@ -34,6 +34,7 @@
 - [cliches](commands/cliches.md)
 - [readability](commands/readability.md)
 - [dialogue](commands/dialogue.md)
+- [continuity](commands/continuity.md)
 - [report](commands/report.md)
 - [check](commands/check.md)
 - [init](commands/init.md)

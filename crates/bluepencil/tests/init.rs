@@ -40,8 +40,11 @@ fn no_genre_writes_the_generic_template() {
     let dir = unique_dir();
     std::fs::create_dir_all(&dir).unwrap();
 
-    let output =
-        Command::new(env!("CARGO_BIN_EXE_bluepencil")).current_dir(&dir).arg("init").output().expect("running bluepencil");
+    let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
+        .current_dir(&dir)
+        .arg("init")
+        .output()
+        .expect("running bluepencil");
     assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
 
     let written = std::fs::read_to_string(dir.join("bluepencil.toml")).unwrap();

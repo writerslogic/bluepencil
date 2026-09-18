@@ -69,3 +69,8 @@ ignore = []
 # grade, dialogue_ratio, mattr.
 # [check.severity]
 # adverbs = "warn"
+
+[continuity]
+# Names `continuity` should never cluster as spelling drift, for two genuinely distinct
+# characters it happens to flag as likely variants of each other.
+ignore = []

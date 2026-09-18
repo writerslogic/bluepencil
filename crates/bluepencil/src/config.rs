@@ -17,6 +17,7 @@ pub struct Config {
     pub tics: Tics,
     pub lexicon: Lexicon,
     pub check: Check,
+    pub continuity: Continuity,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -84,6 +85,14 @@ impl Default for Starters {
 #[serde(default, deny_unknown_fields)]
 pub struct Tics {
     pub words: Vec<String>,
+}
+
+/// Names to exclude from `continuity`'s spelling-drift clustering, for a pair of genuinely
+/// distinct characters it happens to flag as likely variants of each other.
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Continuity {
+    pub ignore: Vec<String>,
 }
 
 /// Additions to and removals from the built-in word lists.

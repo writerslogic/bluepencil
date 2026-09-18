@@ -59,14 +59,13 @@ fn trend_chart_reflects_word_count_growth_across_commits() {
         git(&dir, &["add", "-A"]);
         git(&dir, &["commit", "-q", "-m", &format!("chunk {i}")]);
     }
-    let first = String::from_utf8(
-        Command::new("git").current_dir(&dir).args(["rev-list", "--all"]).output().unwrap().stdout,
-    )
-    .unwrap()
-    .lines()
-    .next_back()
-    .unwrap()
-    .to_string();
+    let first =
+        String::from_utf8(Command::new("git").current_dir(&dir).args(["rev-list", "--all"]).output().unwrap().stdout)
+            .unwrap()
+            .lines()
+            .next_back()
+            .unwrap()
+            .to_string();
 
     let html_path = dir.join("out.html");
     let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))

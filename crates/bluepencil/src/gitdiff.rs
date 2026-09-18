@@ -117,8 +117,10 @@ pub fn git_show(rev: &str, git_path: &str) -> Result<Option<String>> {
 /// the intersection of what's present on both sides, so this deliberately runs unrestricted
 /// and filters the output instead of passing `current_path` as a pathspec.
 pub fn renamed_from(rev: &str, later_rev: &str, current_path: &str) -> Result<Option<String>> {
-    let output =
-        Command::new("git").args(["diff", "-M", "--name-status", rev, later_rev]).output().context("running git diff")?;
+    let output = Command::new("git")
+        .args(["diff", "-M", "--name-status", rev, later_rev])
+        .output()
+        .context("running git diff")?;
     if !output.status.success() {
         bail!("git diff -M --name-status {rev} {later_rev}: {}", String::from_utf8_lossy(&output.stderr).trim());
     }

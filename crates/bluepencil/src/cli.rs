@@ -90,6 +90,8 @@ pub enum Command {
     Readability(Input),
     /// Dialogue versus narration
     Dialogue(Input),
+    /// Character names that may be the same person spelled inconsistently, across all inputs
+    Continuity(Input),
     /// Everything at a glance
     Report(ReportArgs),
     /// Fail when configured thresholds are exceeded (for CI and hooks)

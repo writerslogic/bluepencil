@@ -2,6 +2,7 @@ mod adverbs;
 mod check;
 mod cliches;
 mod completions;
+mod continuity;
 mod count;
 mod dialogue;
 mod echoes;
@@ -67,6 +68,7 @@ pub fn run(cli: Cli) -> Result<Status> {
         Command::Progress(a) => progress::run(&ctx, &a),
         Command::Readability(a) => readability::run(&ctx, &a),
         Command::Dialogue(a) => dialogue::run(&ctx, &a),
+        Command::Continuity(a) => continuity::run(&ctx, &a),
         Command::Report(a) => report::run(&ctx, &a),
         Command::Check(a) => return check::run(&ctx, &a),
         Command::Init { .. } | Command::Completions { .. } => unreachable!(),

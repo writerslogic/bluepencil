@@ -26,10 +26,8 @@ pub fn collect(ctx: &Context, docs: &[Document], since: &str, points: usize) -> 
     commits
         .iter()
         .map(|rev| {
-            let sampled = rels
-                .iter()
-                .filter_map(|rel| document_at(rev, "HEAD", rel).transpose())
-                .collect::<Result<Vec<_>>>()?;
+            let sampled =
+                rels.iter().filter_map(|rel| document_at(rev, "HEAD", rel).transpose()).collect::<Result<Vec<_>>>()?;
             let m = measure(ctx, &sampled, "trend");
             Ok(TrendPoint {
                 label: commit_date(rev)?,
