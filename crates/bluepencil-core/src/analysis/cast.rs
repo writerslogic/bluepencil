@@ -45,15 +45,18 @@ pub fn name_variants(docs: &[Document], ignore: &std::collections::HashSet<Strin
             continue;
         }
         let threshold = if name.chars().count() > 7 { 2 } else { 1 };
+        // `all`, not `any`: matching only the closest existing member lets a bridge name chain
+        // together spellings that aren't themselves close ("lana"/"lano"/"lena" would otherwise
+        // merge into one cluster through "lano", even though "lana" and "lena" are 2 edits apart).
         match clusters.iter_mut().find(|c| {
-            c.iter().any(|existing| existing.chars().count() > 3 && edit_distance(existing, &name) <= threshold)
+            c.iter().all(|existing| existing.chars().count() > 3 && edit_distance(existing, &name) <= threshold)
         }) {
             Some(cluster) => cluster.push(name),
             None => clusters.push(vec![name]),
         }
     }
 
-    clusters
+    let mut out: Vec<NameCluster> = clusters
         .into_iter()
         .filter(|c| c.len() > 1)
         .map(|c| {
@@ -62,7 +65,14 @@ pub fn name_variants(docs: &[Document], ignore: &std::collections::HashSet<Strin
             variants.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.spelling.cmp(&b.spelling)));
             NameCluster { variants }
         })
-        .collect()
+        .collect();
+    // Highest total usage first, so a 200-vs-1 spelling drift outranks a one-off coincidence
+    // between two rare names.
+    out.sort_by(|a, b| {
+        let total = |c: &NameCluster| c.variants.iter().map(|v| v.count).sum::<usize>();
+        total(b).cmp(&total(a)).then_with(|| a.variants[0].spelling.cmp(&b.variants[0].spelling))
+    });
+    out
 }
 
 fn edit_distance(a: &str, b: &str) -> usize {
@@ -126,5 +136,29 @@ mod tests {
     fn clusters_across_multiple_documents() {
         let docs = [doc("I saw Sara today. I saw Sara again."), doc("I met Sarah once. I met Sarah twice.")];
         assert_eq!(names(&docs), vec![vec!["sara".to_string(), "sarah".to_string()]]);
+    }
+
+    #[test]
+    fn does_not_chain_through_a_bridge_name() {
+        // "lana"/"lano" and "lano"/"lena" are each 1 edit apart, but "lana"/"lena" is 2: without
+        // requiring a new name to match every existing cluster member (not just the one it's
+        // closest to), "lano" would bridge "lana" and "lena" into one incorrect cluster.
+        let docs = [doc("I saw Lana and Lano and Lena today. I saw Lana again. I saw Lano again. I saw Lena again.")];
+        assert_eq!(names(&docs), vec![vec!["lana".to_string(), "lano".to_string()]]);
+    }
+
+    #[test]
+    fn ranks_the_most_used_cluster_first() {
+        let mut text = String::new();
+        for _ in 0..20 {
+            text.push_str("I saw Marcus today. ");
+        }
+        text.push_str("I saw Marcos once. I saw Elana today. I saw Elena once.");
+        let docs = [doc(&text)];
+        let clusters = name_variants(&docs, &std::collections::HashSet::new());
+        assert_eq!(clusters.len(), 2);
+        let total: usize = clusters[0].variants.iter().map(|v| v.count).sum();
+        assert!(clusters[0].variants.iter().any(|v| v.spelling == "marcus"), "expected marcus cluster first");
+        assert!(total > 20, "expected the high-usage cluster ranked first: {clusters:?}");
     }
 }
