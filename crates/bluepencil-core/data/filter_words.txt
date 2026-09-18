@@ -20,6 +20,10 @@ realize
 realizes
 realized
 realizing
+realise
+realises
+realised
+realising
 watch
 watches
 watched
