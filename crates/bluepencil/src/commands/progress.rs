@@ -1,4 +1,6 @@
 use anyhow::{Context as _, Result};
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::{Input, ProgressArgs};
 use crate::context::Context;
@@ -17,6 +19,24 @@ impl Delta {
     fn change(&self) -> i64 {
         self.after as i64 - self.before as i64
     }
+}
+
+#[derive(Serialize, JsonSchema)]
+pub struct ProgressFile {
+    pub file: String,
+    pub before: usize,
+    pub after: usize,
+    pub change: i64,
+}
+
+#[derive(Serialize, JsonSchema)]
+pub struct ProgressOutput {
+    pub since: String,
+    pub until: Option<String>,
+    pub files: Vec<ProgressFile>,
+    pub total_before: usize,
+    pub total_after: usize,
+    pub total_change: i64,
 }
 
 pub fn run(ctx: &Context, args: &ProgressArgs) -> Result<()> {
@@ -52,23 +72,16 @@ pub fn run(ctx: &Context, args: &ProgressArgs) -> Result<()> {
     if ctx.json {
         let files: Vec<_> = deltas
             .iter()
-            .map(|d| {
-                serde_json::json!({
-                    "file": d.path,
-                    "before": d.before,
-                    "after": d.after,
-                    "change": d.change(),
-                })
-            })
+            .map(|d| ProgressFile { file: d.path.clone(), before: d.before, after: d.after, change: d.change() })
             .collect();
-        return json::print(&serde_json::json!({
-            "since": since,
-            "until": until,
-            "files": files,
-            "total_before": total_before,
-            "total_after": total_after,
-            "total_change": total_after as i64 - total_before as i64,
-        }));
+        return json::print(&ProgressOutput {
+            since,
+            until,
+            files,
+            total_before,
+            total_after,
+            total_change: total_after as i64 - total_before as i64,
+        });
     }
 
     let mut t = Table::new(&[

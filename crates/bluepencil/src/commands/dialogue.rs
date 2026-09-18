@@ -1,5 +1,7 @@
 use anyhow::Result;
 use bluepencil_core::analysis::dialogue::{DialogueRatio, by_section, ratio};
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::Input;
 use crate::context::Context;
@@ -8,17 +10,30 @@ use crate::output::human::thousands;
 use crate::output::json;
 use crate::output::table::{Align, Table};
 
+#[derive(Serialize, JsonSchema)]
+pub struct DialogueSection {
+    pub section: String,
+    pub dialogue: DialogueRatio,
+}
+
+#[derive(Serialize, JsonSchema)]
+pub struct DialogueOutput {
+    pub file: String,
+    pub dialogue: DialogueRatio,
+    pub sections: Vec<DialogueSection>,
+}
+
 pub fn run(ctx: &Context, input: &Input) -> Result<()> {
     let docs = ctx.documents(input)?;
     if ctx.json {
         let out: Vec<_> = docs
             .iter()
             .map(|d| {
-                let secs: Vec<_> = by_section(d)
+                let sections: Vec<_> = by_section(d)
                     .into_iter()
-                    .map(|(t, r)| serde_json::json!({ "section": t, "dialogue": r }))
+                    .map(|(section, dialogue)| DialogueSection { section, dialogue })
                     .collect();
-                serde_json::json!({ "file": d.name, "dialogue": ratio(d), "sections": secs })
+                DialogueOutput { file: d.name.clone(), dialogue: ratio(d), sections }
             })
             .collect();
         return json::print(&out);

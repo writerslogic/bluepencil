@@ -1,11 +1,27 @@
 use anyhow::Result;
 use bluepencil_core::Span;
 use bluepencil_core::analysis::echoes::echoes;
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::EchoesArgs;
 use crate::context::Context;
 use crate::output::human::{file_banner, ranked};
 use crate::output::{excerpt, json, location};
+
+#[derive(Serialize, JsonSchema)]
+pub struct EchoLocated {
+    pub word: String,
+    pub first: String,
+    pub second: String,
+    pub distance: usize,
+}
+
+#[derive(Serialize, JsonSchema)]
+pub struct EchoesFileOutput {
+    pub file: String,
+    pub echoes: Vec<EchoLocated>,
+}
 
 pub fn run(ctx: &Context, args: &EchoesArgs) -> Result<()> {
     let docs = ctx.documents(&args.input)?;
@@ -21,18 +37,16 @@ pub fn run(ctx: &Context, args: &EchoesArgs) -> Result<()> {
             .iter()
             .zip(&results)
             .map(|(d, es)| {
-                let items: Vec<_> = es
+                let echoes: Vec<_> = es
                     .iter()
-                    .map(|e| {
-                        serde_json::json!({
-                            "word": e.word,
-                            "first": location(d, e.first),
-                            "second": location(d, e.second),
-                            "distance": e.distance,
-                        })
+                    .map(|e| EchoLocated {
+                        word: e.word.clone(),
+                        first: location(d, e.first),
+                        second: location(d, e.second),
+                        distance: e.distance,
                     })
                     .collect();
-                serde_json::json!({ "file": d.name, "echoes": items })
+                EchoesFileOutput { file: d.name.clone(), echoes }
             })
             .collect();
         return json::print(&out);

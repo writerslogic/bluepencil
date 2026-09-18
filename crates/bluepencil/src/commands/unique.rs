@@ -1,11 +1,25 @@
 use anyhow::Result;
-use bluepencil_core::analysis::diversity::diversity;
+use bluepencil_core::analysis::diversity::{Diversity, diversity};
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::UniqueArgs;
 use crate::context::Context;
 use crate::output::human::thousands;
 use crate::output::json;
 use crate::output::table::{Align, Table};
+
+#[derive(Serialize, JsonSchema)]
+pub struct FileDiversity {
+    pub file: String,
+    pub diversity: Diversity,
+}
+
+#[derive(Serialize, JsonSchema)]
+pub struct UniqueOutput {
+    pub files: Vec<FileDiversity>,
+    pub total: Diversity,
+}
 
 pub fn run(ctx: &Context, args: &UniqueArgs) -> Result<()> {
     let docs = ctx.documents(&args.input)?;
@@ -19,8 +33,8 @@ pub fn run(ctx: &Context, args: &UniqueArgs) -> Result<()> {
     let total = diversity(&all, args.window);
 
     if ctx.json {
-        let files: Vec<_> = rows.iter().map(|(n, d)| serde_json::json!({ "file": n, "diversity": d })).collect();
-        return json::print(&serde_json::json!({ "files": files, "total": total }));
+        let files: Vec<_> = rows.iter().map(|(n, d)| FileDiversity { file: n.clone(), diversity: *d }).collect();
+        return json::print(&UniqueOutput { files, total });
     }
     let mut t = Table::new(&[
         ("file", Align::Left),

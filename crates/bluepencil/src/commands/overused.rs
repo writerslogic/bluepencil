@@ -1,17 +1,24 @@
 use anyhow::Result;
-use bluepencil_core::analysis::overuse::overused;
+use bluepencil_core::analysis::overuse::{Overused, overused};
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::OverusedArgs;
 use crate::context::Context;
 use crate::output::json;
 use crate::output::table::{Align, Table};
 
+#[derive(Serialize, JsonSchema)]
+pub struct OverusedOutput {
+    pub words: Vec<Overused>,
+}
+
 pub fn run(ctx: &Context, args: &OverusedArgs) -> Result<()> {
     let docs = ctx.documents(&args.input)?;
     let rows = overused(&docs, &ctx.lexicons, args.min_ratio, args.min_count);
 
     if ctx.json {
-        return json::print(&serde_json::json!({ "words": rows.iter().take(ctx.limit).collect::<Vec<_>>() }));
+        return json::print(&OverusedOutput { words: rows.iter().take(ctx.limit).cloned().collect() });
     }
 
     if rows.is_empty() {

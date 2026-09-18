@@ -3,6 +3,7 @@ use std::ops::RangeInclusive;
 use anyhow::Result;
 use bluepencil_core::analysis::{adverbs, cliches, echoes, filter_words, hedges, passive, rhythm, starters, tics};
 use bluepencil_core::{Document, Finding};
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::report::{Metrics, measure};
@@ -19,13 +20,19 @@ use crate::output::json;
 /// evaluating them against the whole file under a name that implies otherwise.
 const NOT_LINE_SCOPED: &[&str] = &["overused", "grade", "mattr", "dialogue_ratio"];
 
-#[derive(Serialize)]
-struct Violation {
+#[derive(Serialize, JsonSchema)]
+pub struct Violation {
     file: String,
     rule: &'static str,
     limit: f64,
     actual: f64,
     severity: Severity,
+}
+
+#[derive(Serialize, JsonSchema)]
+pub struct CheckOutput {
+    pub passed: bool,
+    pub violations: Vec<Violation>,
 }
 
 pub fn run(ctx: &Context, args: &CheckArgs) -> Result<Status> {
@@ -50,7 +57,7 @@ pub fn run(ctx: &Context, args: &CheckArgs) -> Result<Status> {
     let failed = violations.iter().any(|v| v.severity == Severity::Error);
 
     if ctx.json {
-        json::print(&serde_json::json!({ "passed": !failed, "violations": violations }))?;
+        json::print(&CheckOutput { passed: !failed, violations })?;
     } else if violations.is_empty() {
         println!("All checks passed ({} files).", docs.len());
     } else {

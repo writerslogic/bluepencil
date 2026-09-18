@@ -1,11 +1,20 @@
 use std::io::Read;
 
 use anyhow::{Context as _, Result, bail};
-use bluepencil_core::analysis::diff::{ChangeKind, word_diff};
+use bluepencil_core::analysis::diff::{ChangeKind, WordChange, word_diff};
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::WdiffArgs;
 use crate::context::Context;
 use crate::output::json;
+
+#[derive(Serialize, JsonSchema)]
+pub struct WdiffOutput {
+    pub added: usize,
+    pub removed: usize,
+    pub changes: Vec<WordChange>,
+}
 
 fn read(path: &str) -> Result<String> {
     if path == "-" {
@@ -25,9 +34,7 @@ pub fn run(ctx: &Context, args: &WdiffArgs) -> Result<()> {
     let diff = word_diff(&old, &new);
 
     if ctx.json {
-        return json::print(
-            &serde_json::json!({ "added": diff.added, "removed": diff.removed, "changes": diff.changes }),
-        );
+        return json::print(&WdiffOutput { added: diff.added, removed: diff.removed, changes: diff.changes });
     }
 
     for change in &diff.changes {

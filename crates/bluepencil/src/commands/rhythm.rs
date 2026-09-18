@@ -1,11 +1,23 @@
 use anyhow::Result;
 use bluepencil_core::analysis::rhythm::rhythm;
+use bluepencil_core::stats::Summary;
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::RhythmArgs;
 use crate::context::Context;
 use crate::output::chart::{bar, sparkline};
 use crate::output::human::{file_banner, findings};
-use crate::output::{json, locate};
+use crate::output::{Located, json, locate};
+
+#[derive(Serialize, JsonSchema)]
+pub struct RhythmOutput {
+    pub file: String,
+    pub lengths: Vec<usize>,
+    pub summary: Summary,
+    pub variation: f64,
+    pub findings: Vec<Located>,
+}
 
 pub fn run(ctx: &Context, args: &RhythmArgs) -> Result<()> {
     let docs = ctx.documents(&args.input)?;
@@ -20,8 +32,14 @@ pub fn run(ctx: &Context, args: &RhythmArgs) -> Result<()> {
             .iter()
             .zip(&results)
             .map(|(d, r)| {
-                let f: Vec<_> = r.findings.iter().map(|f| locate(d, f)).collect();
-                serde_json::json!({ "file": d.name, "lengths": r.lengths, "summary": r.summary, "variation": r.variation, "findings": f })
+                let findings: Vec<_> = r.findings.iter().map(|f| locate(d, f)).collect();
+                RhythmOutput {
+                    file: d.name.clone(),
+                    lengths: r.lengths.clone(),
+                    summary: r.summary,
+                    variation: r.variation,
+                    findings,
+                }
             })
             .collect();
         return json::print(&out);

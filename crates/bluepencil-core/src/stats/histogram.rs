@@ -1,6 +1,7 @@
+use schemars::JsonSchema;
 use serde::Serialize;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Bucket {
     pub label: String,
     pub low: usize,

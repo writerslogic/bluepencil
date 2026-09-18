@@ -1,11 +1,27 @@
 use anyhow::Result;
 use bluepencil_core::analysis::repetition::repeats;
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::RepeatsArgs;
 use crate::context::Context;
 use crate::output::human::file_banner;
 use crate::output::table::{Align, Table};
 use crate::output::{json, location};
+
+#[derive(Serialize, JsonSchema)]
+pub struct RepeatEntry {
+    pub phrase: String,
+    pub words: usize,
+    pub count: usize,
+    pub locations: Vec<String>,
+}
+
+#[derive(Serialize, JsonSchema)]
+pub struct RepeatsFileOutput {
+    pub file: String,
+    pub repeats: Vec<RepeatEntry>,
+}
 
 pub fn run(ctx: &Context, args: &RepeatsArgs) -> Result<()> {
     let docs = ctx.documents(&args.input)?;
@@ -21,11 +37,11 @@ pub fn run(ctx: &Context, args: &RepeatsArgs) -> Result<()> {
                 let reps: Vec<_> = repeats(d, &ctx.lexicons, min, max, count)
                     .into_iter()
                     .map(|r| {
-                        let locs: Vec<_> = r.spans.iter().map(|s| location(d, *s)).collect();
-                        serde_json::json!({ "phrase": r.phrase, "words": r.words, "count": r.count, "locations": locs })
+                        let locations: Vec<_> = r.spans.iter().map(|s| location(d, *s)).collect();
+                        RepeatEntry { phrase: r.phrase, words: r.words, count: r.count, locations }
                     })
                     .collect();
-                serde_json::json!({ "file": d.name, "repeats": reps })
+                RepeatsFileOutput { file: d.name.clone(), repeats: reps }
             })
             .collect();
         return json::print(&out);

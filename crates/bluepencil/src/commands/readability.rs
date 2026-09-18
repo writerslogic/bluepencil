@@ -1,6 +1,8 @@
 use anyhow::Result;
-use bluepencil_core::analysis::readability::{document, sections};
+use bluepencil_core::analysis::readability::{SectionReadability, document, sections};
 use bluepencil_core::stats::readability::Readability;
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::Input;
 use crate::context::Context;
@@ -8,12 +10,19 @@ use crate::output::human::{file_banner, thousands};
 use crate::output::json;
 use crate::output::table::{Align, Table};
 
+#[derive(Serialize, JsonSchema)]
+pub struct FileReadability {
+    pub file: String,
+    pub document: Readability,
+    pub sections: Vec<SectionReadability>,
+}
+
 pub fn run(ctx: &Context, input: &Input) -> Result<()> {
     let docs = ctx.documents(input)?;
     if ctx.json {
         let out: Vec<_> = docs
             .iter()
-            .map(|d| serde_json::json!({ "file": d.name, "document": document(d), "sections": sections(d) }))
+            .map(|d| FileReadability { file: d.name.clone(), document: document(d), sections: sections(d) })
             .collect();
         return json::print(&out);
     }

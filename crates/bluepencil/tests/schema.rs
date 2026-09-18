@@ -18,13 +18,54 @@ fn count_schema_is_valid_json_with_the_expected_shape() {
 
 #[test]
 fn unmigrated_command_reports_no_schema_rather_than_a_wrong_one() {
+    // `split` has no --json output at all (it's a file-manipulation command), so it's the
+    // one genuinely unmigrated case left once every analysis command has a schema.
     let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
-        .args(["schema", "check"])
+        .args(["schema", "split"])
         .stdin(std::process::Stdio::null())
         .output()
         .expect("running bluepencil");
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("no schema"));
+}
+
+#[test]
+fn every_migrated_command_prints_a_valid_schema() {
+    for command in [
+        "count",
+        "adverbs",
+        "cliches",
+        "filter",
+        "hedges",
+        "passive",
+        "tics",
+        "check",
+        "continuity",
+        "freq",
+        "progress",
+        "echoes",
+        "repeats",
+        "wdiff",
+        "overused",
+        "dialogue",
+        "outline",
+        "rhythm",
+        "starters",
+        "readability",
+        "report",
+        "unique",
+        "histogram",
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
+            .args(["schema", command])
+            .stdin(std::process::Stdio::null())
+            .output()
+            .expect("running bluepencil");
+        assert!(output.status.success(), "`schema {command}` failed: {}", String::from_utf8_lossy(&output.stderr));
+        let schema: serde_json::Value = serde_json::from_slice(&output.stdout)
+            .unwrap_or_else(|e| panic!("`schema {command}` did not print valid JSON: {e}"));
+        assert!(schema["type"].is_string(), "`schema {command}` missing a top-level `type`: {schema}");
+    }
 }
 
 #[test]

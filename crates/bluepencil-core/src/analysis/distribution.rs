@@ -1,10 +1,11 @@
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use crate::document::Document;
 use crate::stats::Summary;
 use crate::stats::histogram::{Bucket, buckets};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Distribution {
     pub summary: Summary,
     pub buckets: Vec<Bucket>,

@@ -1,10 +1,20 @@
 use anyhow::Result;
 use bluepencil_core::analysis::starters::starters;
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::StartersArgs;
 use crate::context::Context;
 use crate::output::human::{file_banner, findings, heading, ranked};
-use crate::output::{json, locate};
+use crate::output::{Located, json, locate};
+
+#[derive(Serialize, JsonSchema)]
+pub struct StartersOutput {
+    pub file: String,
+    pub sentence: Vec<(String, usize)>,
+    pub paragraph: Vec<(String, usize)>,
+    pub findings: Vec<Located>,
+}
 
 pub fn run(ctx: &Context, args: &StartersArgs) -> Result<()> {
     let docs = ctx.documents(&args.input)?;
@@ -16,8 +26,13 @@ pub fn run(ctx: &Context, args: &StartersArgs) -> Result<()> {
             .iter()
             .zip(&results)
             .map(|(d, s)| {
-                let f: Vec<_> = s.findings.iter().map(|f| locate(d, f)).collect();
-                serde_json::json!({ "file": d.name, "sentence": s.sentence, "paragraph": s.paragraph, "findings": f })
+                let findings: Vec<_> = s.findings.iter().map(|f| locate(d, f)).collect();
+                StartersOutput {
+                    file: d.name.clone(),
+                    sentence: s.sentence.clone(),
+                    paragraph: s.paragraph.clone(),
+                    findings,
+                }
             })
             .collect();
         return json::print(&out);

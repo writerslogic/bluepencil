@@ -9,6 +9,7 @@ use bluepencil_core::analysis::{
 use bluepencil_core::stats::readability::Readability;
 use bluepencil_core::stats::{Summary, per_thousand};
 use bluepencil_core::{Document, Lexicons};
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use crate::cli::ReportArgs;
@@ -17,7 +18,13 @@ use crate::output::human::{minutes, thousands};
 use crate::output::table::{Align, Table};
 use crate::output::{html, json};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Serialize, JsonSchema)]
+pub struct ReportOutput {
+    pub total: Metrics,
+    pub files: Vec<Metrics>,
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Metrics {
     pub name: String,
     pub counts: Counts,
@@ -159,7 +166,7 @@ pub fn run(ctx: &Context, args: &ReportArgs) -> Result<()> {
         }
     }
     if ctx.json {
-        return json::print(&serde_json::json!({ "total": total, "files": files }));
+        return json::print(&ReportOutput { total, files });
     }
     print_human(&total, &files);
     Ok(())

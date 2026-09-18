@@ -1,5 +1,7 @@
 use anyhow::Result;
-use bluepencil_core::analysis::outline::outline;
+use bluepencil_core::analysis::outline::{Section, outline};
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::Input;
 use crate::context::Context;
@@ -7,10 +9,16 @@ use crate::output::chart::bar;
 use crate::output::human::{file_banner, thousands};
 use crate::output::json;
 
+#[derive(Serialize, JsonSchema)]
+pub struct OutlineOutput {
+    pub file: String,
+    pub sections: Vec<Section>,
+}
+
 pub fn run(ctx: &Context, input: &Input) -> Result<()> {
     let docs = ctx.documents(input)?;
     if ctx.json {
-        let out: Vec<_> = docs.iter().map(|d| serde_json::json!({ "file": d.name, "sections": outline(d) })).collect();
+        let out: Vec<_> = docs.iter().map(|d| OutlineOutput { file: d.name.clone(), sections: outline(d) }).collect();
         return json::print(&out);
     }
     for doc in &docs {

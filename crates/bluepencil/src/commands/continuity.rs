@@ -1,10 +1,17 @@
 use anyhow::Result;
-use bluepencil_core::analysis::cast::name_variants;
+use bluepencil_core::analysis::cast::{NameCluster, name_variants};
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::Input;
 use crate::context::Context;
 use crate::output::json;
 use crate::output::table::{Align, Table};
+
+#[derive(Serialize, JsonSchema)]
+pub struct ContinuityOutput {
+    pub clusters: Vec<NameCluster>,
+}
 
 pub fn run(ctx: &Context, input: &Input) -> Result<()> {
     let docs = ctx.documents(input)?;
@@ -13,7 +20,7 @@ pub fn run(ctx: &Context, input: &Input) -> Result<()> {
     let clusters = name_variants(&docs, &ignore);
 
     if ctx.json {
-        return json::print(&serde_json::json!({ "clusters": clusters }));
+        return json::print(&ContinuityOutput { clusters });
     }
 
     if clusters.is_empty() {
