@@ -1,7 +1,9 @@
 use std::ops::RangeInclusive;
 use std::path::Path;
+use std::process::Command;
 
 use anyhow::{Context as _, Result, bail};
+use bluepencil_core::{Document, Format};
 
 /// Line ranges (1-based, inclusive) added or modified in `name` since `since`, read from
 /// `git diff --unified=0`'s hunk headers. A hunk with zero added lines (a pure deletion)
@@ -58,6 +60,103 @@ fn git_output_in(dir: &Path, args: &[&str]) -> Result<String> {
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
+pub fn git_output(args: &[&str]) -> Result<String> {
+    let output = Command::new("git").args(args).output().context("running git")?;
+    if !output.status.success() {
+        bail!("git {}: {}", args.join(" "), String::from_utf8_lossy(&output.stderr).trim());
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+/// Resolves a commit, tag, branch, or `YYYY-MM-DD` date to the sha of the commit it names
+/// (for a date, the most recent commit at or before it).
+pub fn resolve_ref(spec: &str) -> Result<String> {
+    if let Ok(sha) = git_output(&["rev-parse", "--verify", &format!("{spec}^{{commit}}")]) {
+        return Ok(sha.trim().to_string());
+    }
+    // `git rev-list --before` treats an unparseable date as "no limit" and silently returns
+    // the most recent commit instead of erroring, so a ref typo must be caught before it gets here.
+    if !looks_like_date(spec) {
+        bail!("`{spec}` is not a git ref bluepencil can resolve (dates must look like YYYY-MM-DD)");
+    }
+    let sha = git_output(&["rev-list", "-1", "--before", spec, "HEAD"])?;
+    let sha = sha.trim();
+    if sha.is_empty() {
+        bail!("no commit before `{spec}`");
+    }
+    Ok(sha.to_string())
+}
+
+fn looks_like_date(spec: &str) -> bool {
+    let date = spec.split(['T', ' ']).next().unwrap_or(spec);
+    let mut parts = date.split('-');
+    let digits = |s: &str, len: usize| s.len() == len && s.chars().all(|c| c.is_ascii_digit());
+    matches!(
+        (parts.next(), parts.next(), parts.next(), parts.next()),
+        (Some(y), Some(m), Some(d), None) if digits(y, 4) && digits(m, 2) && digits(d, 2)
+    )
+}
+
+/// The file's text at `rev`, or `None` when it genuinely doesn't exist there; any other git
+/// failure is propagated rather than silently folded into "doesn't exist".
+pub fn git_show(rev: &str, git_path: &str) -> Result<Option<String>> {
+    let spec = format!("{rev}:{git_path}");
+    let output = Command::new("git").args(["show", &spec]).output().context("running git show")?;
+    if output.status.success() {
+        return Ok(Some(String::from_utf8_lossy(&output.stdout).into_owned()));
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stderr.contains("does not exist in") || stderr.contains("exists on disk, but not in") {
+        return Ok(None);
+    }
+    bail!("git show {spec}: {}", stderr.trim());
+}
+
+/// The name `current_path` had at `rev`, if git's own rename detection pairs it with a
+/// differently-named file by `later_rev`. `git diff`'s pathspec restricts rename detection to
+/// the intersection of what's present on both sides, so this deliberately runs unrestricted
+/// and filters the output instead of passing `current_path` as a pathspec.
+pub fn renamed_from(rev: &str, later_rev: &str, current_path: &str) -> Result<Option<String>> {
+    let output =
+        Command::new("git").args(["diff", "-M", "--name-status", rev, later_rev]).output().context("running git diff")?;
+    if !output.status.success() {
+        bail!("git diff -M --name-status {rev} {later_rev}: {}", String::from_utf8_lossy(&output.stderr).trim());
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    for line in text.lines() {
+        let mut parts = line.split('\t');
+        let Some(status) = parts.next() else { continue };
+        if !status.starts_with('R') {
+            continue;
+        }
+        if let (Some(from), Some(to)) = (parts.next(), parts.next())
+            && to == current_path
+        {
+            return Ok(Some(from.to_string()));
+        }
+    }
+    Ok(None)
+}
+
+/// Word count of `current_path` as of `rev`, following a rename to `later_rev`'s name if git
+/// pairs one, rather than reporting 0 for a file that only looks new under its current name.
+pub fn word_count_at(rev: &str, later_rev: &str, current_path: &str) -> Result<usize> {
+    if let Some(text) = git_show(rev, current_path)? {
+        return Ok(count_words(current_path, text));
+    }
+    if let Some(old_path) = renamed_from(rev, later_rev, current_path)?
+        && let Some(text) = git_show(rev, &old_path)?
+    {
+        return Ok(count_words(&old_path, text));
+    }
+    Ok(0)
+}
+
+fn count_words(git_path: &str, text: String) -> usize {
+    let format = Format::from_path(Path::new(git_path));
+    Document::parse(git_path.to_string(), text, format).word_count()
+}
+
 /// Parses `@@ -a,b +c,d @@ ...` for the `+c,d` side. `d` defaults to 1 when omitted
 /// (a single-line hunk); a hunk with `d == 0` is a pure deletion, so it's skipped.
 fn parse_hunk_header(line: &str) -> Option<RangeInclusive<usize>> {
@@ -72,7 +171,7 @@ fn parse_hunk_header(line: &str) -> Option<RangeInclusive<usize>> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_hunk_header;
+    use super::{looks_like_date, parse_hunk_header};
 
     #[test]
     fn multi_line_hunk() {
@@ -87,6 +186,31 @@ mod tests {
     #[test]
     fn pure_deletion_is_skipped() {
         assert_eq!(parse_hunk_header("@@ -5,3 +5,0 @@"), None);
+    }
+
+    #[test]
+    fn iso_date_is_a_date() {
+        assert!(looks_like_date("2026-09-01"));
+    }
+
+    #[test]
+    fn iso_datetime_is_a_date() {
+        assert!(looks_like_date("2026-09-01T12:00:00"));
+    }
+
+    #[test]
+    fn git_ref_is_not_a_date() {
+        assert!(!looks_like_date("HEAD~5"));
+    }
+
+    #[test]
+    fn typo_is_not_a_date() {
+        assert!(!looks_like_date("not-a-real-ref"));
+    }
+
+    #[test]
+    fn branch_name_with_dashes_is_not_a_date() {
+        assert!(!looks_like_date("release-2026-09"));
     }
 
     #[test]

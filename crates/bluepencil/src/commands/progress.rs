@@ -1,12 +1,8 @@
-use std::path::Path;
-use std::process::Command;
-
-use anyhow::{Context as _, Result, bail};
-use bluepencil_core::{Document, Format};
+use anyhow::{Context as _, Result};
 
 use crate::cli::{Input, ProgressArgs};
 use crate::context::Context;
-use crate::gitdiff::repo_relative_path;
+use crate::gitdiff::{git_output, repo_relative_path, resolve_ref, word_count_at};
 use crate::output::human::thousands;
 use crate::output::json;
 use crate::output::table::{Align, Table};
@@ -34,9 +30,9 @@ pub fn run(ctx: &Context, args: &ProgressArgs) -> Result<()> {
             .map(|doc| {
                 let rel = repo_relative_path(&doc.name)?;
                 let before_boundary = until.as_deref().unwrap_or("HEAD");
-                let before = resolve_word_count(&since, before_boundary, &rel)?;
+                let before = word_count_at(&since, before_boundary, &rel)?;
                 let after = match &until {
-                    Some(rev) => resolve_word_count(rev, "HEAD", &rel)?,
+                    Some(rev) => word_count_at(rev, "HEAD", &rel)?,
                     None => doc.word_count(),
                 };
                 Ok(Delta { path: doc.name.clone(), before, after })
@@ -110,8 +106,8 @@ fn historical_deltas(input: &Input, since: &str, until: Option<&str>, disk_err: 
         .iter()
         .map(|name| {
             let rel = repo_relative_path(name)?;
-            let before = resolve_word_count(since, until, &rel)?;
-            let after = resolve_word_count(until, "HEAD", &rel)?;
+            let before = word_count_at(since, until, &rel)?;
+            let after = word_count_at(until, "HEAD", &rel)?;
             Ok(Delta { path: name.clone(), before, after })
         })
         .collect()
@@ -125,132 +121,3 @@ fn signed(n: i64) -> String {
     if n >= 0 { format!("+{n}") } else { n.to_string() }
 }
 
-/// Word count of `current_path` as of `rev`, falling back to the name it had at `rev` if it
-/// was later renamed to `current_path` by the time of `later_rev`. Without this, a file
-/// renamed between `rev` and `later_rev` reports a `before` of 0 (git show finds nothing
-/// under the new name at the old revision) and so a total word count as if newly written,
-/// even though the content carried over.
-fn resolve_word_count(rev: &str, later_rev: &str, current_path: &str) -> Result<usize> {
-    if let Some(text) = git_show(rev, current_path)? {
-        return Ok(count_words(current_path, text));
-    }
-    if let Some(old_path) = renamed_from(rev, later_rev, current_path)?
-        && let Some(text) = git_show(rev, &old_path)?
-    {
-        return Ok(count_words(&old_path, text));
-    }
-    Ok(0)
-}
-
-fn count_words(git_path: &str, text: String) -> usize {
-    let format = Format::from_path(Path::new(git_path));
-    Document::parse(git_path.to_string(), text, format).word_count()
-}
-
-/// `None` when the file genuinely doesn't exist at `rev` (e.g. not yet written); propagates
-/// any other git failure instead of silently treating it the same way.
-fn git_show(rev: &str, git_path: &str) -> Result<Option<String>> {
-    let spec = format!("{rev}:{git_path}");
-    let output = Command::new("git").args(["show", &spec]).output().context("running git show")?;
-    if output.status.success() {
-        return Ok(Some(String::from_utf8_lossy(&output.stdout).into_owned()));
-    }
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    if stderr.contains("does not exist in") || stderr.contains("exists on disk, but not in") {
-        return Ok(None);
-    }
-    bail!("git show {spec}: {}", stderr.trim());
-}
-
-/// The name `current_path` had at `rev`, if git's own rename detection pairs it with a
-/// differently-named file by `later_rev`. `git diff`'s pathspec restricts rename detection to
-/// the intersection of what's present on both sides, so this deliberately runs unrestricted
-/// and filters the output instead of passing `current_path` as a pathspec.
-fn renamed_from(rev: &str, later_rev: &str, current_path: &str) -> Result<Option<String>> {
-    let output = Command::new("git")
-        .args(["diff", "-M", "--name-status", rev, later_rev])
-        .output()
-        .context("running git diff")?;
-    if !output.status.success() {
-        bail!("git diff -M --name-status {rev} {later_rev}: {}", String::from_utf8_lossy(&output.stderr).trim());
-    }
-    let text = String::from_utf8_lossy(&output.stdout);
-    for line in text.lines() {
-        let mut parts = line.split('\t');
-        let Some(status) = parts.next() else { continue };
-        if !status.starts_with('R') {
-            continue;
-        }
-        if let (Some(from), Some(to)) = (parts.next(), parts.next())
-            && to == current_path
-        {
-            return Ok(Some(from.to_string()));
-        }
-    }
-    Ok(None)
-}
-
-fn resolve_ref(spec: &str) -> Result<String> {
-    if let Ok(sha) = git_output(&["rev-parse", "--verify", &format!("{spec}^{{commit}}")]) {
-        return Ok(sha.trim().to_string());
-    }
-    // `git rev-list --before` treats an unparseable date as "no limit" and silently returns
-    // the most recent commit instead of erroring, so a ref typo must be caught before it gets here.
-    if !looks_like_date(spec) {
-        bail!("`{spec}` is not a git ref bluepencil can resolve (dates must look like YYYY-MM-DD)");
-    }
-    let sha = git_output(&["rev-list", "-1", "--before", spec, "HEAD"])?;
-    let sha = sha.trim();
-    if sha.is_empty() {
-        bail!("no commit before `{spec}`");
-    }
-    Ok(sha.to_string())
-}
-
-fn looks_like_date(spec: &str) -> bool {
-    let date = spec.split(['T', ' ']).next().unwrap_or(spec);
-    let mut parts = date.split('-');
-    let digits = |s: &str, len: usize| s.len() == len && s.chars().all(|c| c.is_ascii_digit());
-    matches!(
-        (parts.next(), parts.next(), parts.next(), parts.next()),
-        (Some(y), Some(m), Some(d), None) if digits(y, 4) && digits(m, 2) && digits(d, 2)
-    )
-}
-
-fn git_output(args: &[&str]) -> Result<String> {
-    let output = Command::new("git").args(args).output().context("running git")?;
-    if !output.status.success() {
-        bail!("git {}: {}", args.join(" "), String::from_utf8_lossy(&output.stderr).trim());
-    }
-    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::looks_like_date;
-
-    #[test]
-    fn iso_date_is_a_date() {
-        assert!(looks_like_date("2026-09-01"));
-    }
-
-    #[test]
-    fn iso_datetime_is_a_date() {
-        assert!(looks_like_date("2026-09-01T12:00:00"));
-    }
-
-    #[test]
-    fn git_ref_is_not_a_date() {
-        assert!(!looks_like_date("HEAD~5"));
-    }
-
-    #[test]
-    fn typo_is_not_a_date() {
-        assert!(!looks_like_date("not-a-real-ref"));
-    }
-
-    #[test]
-    fn branch_name_with_dashes_is_not_a_date() {
-        assert!(!looks_like_date("release-2026-09"));
-    }
-}
