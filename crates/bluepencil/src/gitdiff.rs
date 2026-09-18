@@ -138,18 +138,36 @@ pub fn renamed_from(rev: &str, later_rev: &str, current_path: &str) -> Result<Op
     Ok(None)
 }
 
-/// Word count of `current_path` as of `rev`, following a rename to `later_rev`'s name if git
-/// pairs one, rather than reporting 0 for a file that only looks new under its current name.
-pub fn word_count_at(rev: &str, later_rev: &str, current_path: &str) -> Result<usize> {
+/// The text of `current_path` as of `rev`, following a rename to `later_rev`'s name if git
+/// pairs one, or `None` if the path genuinely doesn't exist at `rev` under any name git can
+/// trace. Returns the path the content was actually found under, since a rename can also
+/// change the file's extension and so its `Format`.
+fn resolve_at(rev: &str, later_rev: &str, current_path: &str) -> Result<Option<(String, String)>> {
     if let Some(text) = git_show(rev, current_path)? {
-        return Ok(count_words(current_path, text));
+        return Ok(Some((current_path.to_string(), text)));
     }
     if let Some(old_path) = renamed_from(rev, later_rev, current_path)?
         && let Some(text) = git_show(rev, &old_path)?
     {
-        return Ok(count_words(&old_path, text));
+        return Ok(Some((old_path, text)));
     }
-    Ok(0)
+    Ok(None)
+}
+
+/// Word count of `current_path` as of `rev`, following a rename to `later_rev`'s name if git
+/// pairs one, rather than reporting 0 for a file that only looks new under its current name.
+pub fn word_count_at(rev: &str, later_rev: &str, current_path: &str) -> Result<usize> {
+    Ok(resolve_at(rev, later_rev, current_path)?.map(|(path, text)| count_words(&path, text)).unwrap_or(0))
+}
+
+/// `current_path` parsed as of `rev`, following a rename the same way `word_count_at` does.
+/// `None` when the file doesn't exist at `rev` under any traceable name, so a caller sampling
+/// across several commits can skip that file at that point rather than treating it as empty.
+pub fn document_at(rev: &str, later_rev: &str, current_path: &str) -> Result<Option<Document>> {
+    Ok(resolve_at(rev, later_rev, current_path)?.map(|(path, text)| {
+        let format = Format::from_path(Path::new(&path));
+        Document::parse(current_path.to_string(), text, format)
+    }))
 }
 
 fn count_words(git_path: &str, text: String) -> usize {

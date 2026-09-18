@@ -1,4 +1,5 @@
 use crate::commands::report::Metrics;
+use crate::commands::trend::TrendPoint;
 
 const TEMPLATE: &str = include_str!("../../templates/report.html");
 const CSS: &str = include_str!("../../templates/report.css");
@@ -23,7 +24,70 @@ fn chips(rows: &[(String, usize)]) -> String {
     format!("<ul class=\"chips\">{}</ul>", items.join(""))
 }
 
-pub fn report(m: &Metrics, files: &[Metrics]) -> String {
+/// Maps `values` onto an SVG polyline's `points` attribute, `width`x`height` with `pad`
+/// margin on every side, normalized against `values`' own min/max (a flat line at mid-height
+/// when every value is equal, rather than dividing by zero).
+fn polyline(values: &[f64], width: f64, height: f64, pad: f64) -> String {
+    let (min, max) = values.iter().fold((f64::MAX, f64::MIN), |(lo, hi), &v| (lo.min(v), hi.max(v)));
+    let span = (max - min).max(f64::EPSILON);
+    let step = if values.len() > 1 { (width - 2.0 * pad) / (values.len() - 1) as f64 } else { 0.0 };
+    values
+        .iter()
+        .enumerate()
+        .map(|(i, &v)| {
+            let x = pad + step * i as f64;
+            let y = if max > min { height - pad - (v - min) / span * (height - 2.0 * pad) } else { height / 2.0 };
+            format!("{x:.1},{y:.1}")
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn trend_chart(points: &[TrendPoint]) -> String {
+    if points.len() < 2 {
+        return String::new();
+    }
+    const W: f64 = 680.0;
+    const H: f64 = 140.0;
+    const PAD: f64 = 8.0;
+
+    let words: Vec<f64> = points.iter().map(|p| p.words as f64).collect();
+    let words_line = polyline(&words, W, H, PAD);
+    let words_svg = format!(
+        "<svg viewBox=\"0 0 {W} {H}\" preserveAspectRatio=\"none\" role=\"img\" aria-label=\"Word count over time\"><polyline points=\"{words_line}\" fill=\"none\" style=\"stroke:var(--accent)\" stroke-width=\"2\"/></svg>"
+    );
+
+    let series = [
+        ("Echoes", "var(--accent)", points.iter().map(|p| p.echoes_per_1k).collect::<Vec<_>>()),
+        ("Adverbs", "#c2652b", points.iter().map(|p| p.adverbs_per_1k).collect::<Vec<_>>()),
+        ("Cliches", "#8a5fc9", points.iter().map(|p| p.cliches_per_1k).collect::<Vec<_>>()),
+    ];
+    let flag_lines: String = series
+        .iter()
+        .map(|(_, color, values)| {
+            let line = polyline(values, W, H, PAD);
+            format!("<polyline points=\"{line}\" fill=\"none\" style=\"stroke:{color}\" stroke-width=\"2\"/>")
+        })
+        .collect();
+    let flags_svg = format!(
+        "<svg viewBox=\"0 0 {W} {H}\" preserveAspectRatio=\"none\" role=\"img\" aria-label=\"Style flags per 1,000 words over time\">{flag_lines}</svg>"
+    );
+    let legend: String = series
+        .iter()
+        .map(|(label, color, _)| format!("<li><span class=\"swatch\" style=\"background:{color}\"></span>{label}</li>"))
+        .collect();
+
+    let first = esc(&points[0].label);
+    let last = esc(&points[points.len() - 1].label);
+    format!(
+        "<section><h2>Trend</h2>\
+        <div class=\"trend\"><p class=\"muted\">Word count, {first} to {last}</p>{words_svg}</div>\
+        <div class=\"trend\"><p class=\"muted\">Style flags per 1,000 words</p>{flags_svg}<ul class=\"legend\">{legend}</ul></div>\
+        </section>"
+    )
+}
+
+pub fn report(m: &Metrics, files: &[Metrics], trend: &[TrendPoint]) -> String {
     let c = &m.counts;
     let r = &m.readability;
     let overview = [
@@ -87,6 +151,7 @@ pub fn report(m: &Metrics, files: &[Metrics]) -> String {
     TEMPLATE
         .replace("{{css}}", CSS)
         .replace("{{version}}", env!("CARGO_PKG_VERSION"))
+        .replace("{{trend}}", &trend_chart(trend))
         .replace("{{overview}}", &overview)
         .replace("{{flags}}", &flag_rows)
         .replace("{{top_words}}", &chips(&m.top_words))

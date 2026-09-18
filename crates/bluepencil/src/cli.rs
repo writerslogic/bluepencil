@@ -305,4 +305,11 @@ pub struct ReportArgs {
     /// Also write a standalone HTML report
     #[arg(long, value_name = "PATH")]
     pub html: Option<PathBuf>,
+    /// Add a word-count and style trend chart to the HTML report, sampled from git history
+    /// since this commit, tag, or date (requires --html)
+    #[arg(long, value_name = "GIT_REF")]
+    pub trend_since: Option<String>,
+    /// Number of points to sample between --trend-since and HEAD
+    #[arg(long, default_value_t = 8)]
+    pub trend_points: usize,
 }

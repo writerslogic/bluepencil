@@ -1,4 +1,4 @@
-use anyhow::{Context as _, Result};
+use anyhow::{Context as _, Result, bail};
 use bluepencil_core::analysis::counts::Counts;
 use bluepencil_core::analysis::dialogue::{self, DialogueRatio};
 use bluepencil_core::analysis::diversity::{Diversity, diversity};
@@ -135,6 +135,10 @@ fn combined_readability(docs: &[Document]) -> Readability {
 }
 
 pub fn run(ctx: &Context, args: &ReportArgs) -> Result<()> {
+    if args.trend_since.is_some() && args.html.is_none() {
+        bail!("--trend-since needs --html to write the chart to");
+    }
+
     let docs = ctx.documents(&args.input)?;
     let total = measure(ctx, &docs, "all files");
     let files: Vec<Metrics> = if docs.len() > 1 {
@@ -144,7 +148,12 @@ pub fn run(ctx: &Context, args: &ReportArgs) -> Result<()> {
     };
 
     if let Some(path) = &args.html {
-        std::fs::write(path, html::report(&total, &files)).with_context(|| format!("writing {}", path.display()))?;
+        let trend = match &args.trend_since {
+            Some(since) => super::trend::collect(ctx, &docs, since, args.trend_points)?,
+            None => Vec::new(),
+        };
+        std::fs::write(path, html::report(&total, &files, &trend))
+            .with_context(|| format!("writing {}", path.display()))?;
         if !ctx.json {
             println!("Wrote {}\n", path.display());
         }

@@ -23,6 +23,7 @@ mod rhythm;
 mod split;
 mod starters;
 mod tics;
+pub mod trend;
 mod unique;
 mod wdiff;
 
