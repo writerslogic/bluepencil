@@ -80,6 +80,14 @@ pub fn run(cli: Cli) -> Result<Status> {
 
 type Finder = fn(&Document, &Lexicons) -> Vec<Finding>;
 
+#[derive(serde::Serialize, schemars::JsonSchema)]
+pub struct ListOutput {
+    pub total: usize,
+    pub per_1k_words: f64,
+    pub summary: Vec<(String, usize)>,
+    pub findings: Vec<output::Located>,
+}
+
 /// Shared driver for commands that locate words or phrases from a list.
 pub(crate) fn list_command(ctx: &Context, args: &ListArgs, find: Finder, label: &str) -> Result<()> {
     let docs = ctx.documents(&args.input)?;
@@ -88,14 +96,14 @@ pub(crate) fn list_command(ctx: &Context, args: &ListArgs, find: Finder, label: 
     let all: Vec<Finding> = per_doc.iter().flatten().cloned().collect();
 
     if ctx.json {
-        let located: Vec<_> =
+        let findings: Vec<_> =
             docs.iter().zip(&per_doc).flat_map(|(d, fs)| fs.iter().map(|f| output::locate(d, f))).collect();
-        return output::json::print(&serde_json::json!({
-            "total": all.len(),
-            "per_1k_words": bluepencil_core::stats::per_thousand(all.len(), total_words),
-            "summary": tally(&all),
-            "findings": located,
-        }));
+        return output::json::print(&ListOutput {
+            total: all.len(),
+            per_1k_words: bluepencil_core::stats::per_thousand(all.len(), total_words),
+            summary: tally(&all),
+            findings,
+        });
     }
 
     if args.summary {

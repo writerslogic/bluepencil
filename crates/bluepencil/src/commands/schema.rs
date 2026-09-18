@@ -8,6 +8,9 @@ use crate::exit::Status;
 pub fn run(command: &str) -> Result<Status> {
     let schema = match command {
         "count" => schemars::schema_for!(super::count::CountOutput),
+        "adverbs" | "cliches" | "filter" | "hedges" | "passive" | "tics" => {
+            schemars::schema_for!(super::ListOutput)
+        }
         other => bail!("no schema for `{other}` yet"),
     };
     println!("{}", serde_json::to_string_pretty(&schema)?);

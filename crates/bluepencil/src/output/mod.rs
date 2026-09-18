@@ -5,9 +5,10 @@ pub mod json;
 pub mod table;
 
 use bluepencil_core::{Document, Finding, Span};
+use schemars::JsonSchema;
 use serde::Serialize;
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct Located {
     pub file: String,
     pub line: usize,
