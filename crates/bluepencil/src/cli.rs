@@ -107,6 +107,11 @@ pub enum Command {
     },
     /// Print shell completions
     Completions { shell: Shell },
+    /// Print the JSON Schema for a command's --json output
+    Schema {
+        /// The command to print a schema for (currently: count)
+        command: String,
+    },
     /// Word-level diff between two versions of the same text
     Wdiff(WdiffArgs),
     /// Split a manuscript into one file per heading

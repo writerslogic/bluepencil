@@ -39,6 +39,7 @@
 - [check](commands/check.md)
 - [init](commands/init.md)
 - [completions](commands/completions.md)
+- [schema](commands/schema.md)
 
 # Planned
 

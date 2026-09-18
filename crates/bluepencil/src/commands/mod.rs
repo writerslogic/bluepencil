@@ -21,6 +21,7 @@ mod readability;
 mod repeats;
 pub mod report;
 mod rhythm;
+mod schema;
 mod split;
 mod starters;
 mod tics;
@@ -41,6 +42,7 @@ pub fn run(cli: Cli) -> Result<Status> {
     match cli.command {
         Command::Init { force, genre } => return init::run(force, genre),
         Command::Completions { shell } => return completions::run(shell),
+        Command::Schema { command } => return schema::run(&command),
         _ => {}
     }
     let ctx = Context::new(&cli.global)?;
@@ -71,7 +73,7 @@ pub fn run(cli: Cli) -> Result<Status> {
         Command::Continuity(a) => continuity::run(&ctx, &a),
         Command::Report(a) => report::run(&ctx, &a),
         Command::Check(a) => return check::run(&ctx, &a),
-        Command::Init { .. } | Command::Completions { .. } => unreachable!(),
+        Command::Init { .. } | Command::Completions { .. } | Command::Schema { .. } => unreachable!(),
     }?;
     Ok(Status::Ok)
 }

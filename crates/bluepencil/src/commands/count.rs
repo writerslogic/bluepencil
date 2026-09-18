@@ -1,5 +1,7 @@
 use anyhow::Result;
 use bluepencil_core::analysis::counts::Counts;
+use schemars::JsonSchema;
+use serde::Serialize;
 
 use crate::cli::Input;
 use crate::context::Context;
@@ -7,14 +9,26 @@ use crate::output::human::{minutes, thousands};
 use crate::output::json;
 use crate::output::table::{Align, Table};
 
+#[derive(Serialize, JsonSchema)]
+pub struct FileCounts {
+    pub file: String,
+    pub counts: Counts,
+}
+
+#[derive(Serialize, JsonSchema)]
+pub struct CountOutput {
+    pub files: Vec<FileCounts>,
+    pub total: Counts,
+}
+
 pub fn run(ctx: &Context, input: &Input) -> Result<()> {
     let docs = ctx.documents(input)?;
     let rows: Vec<(String, Counts)> = docs.iter().map(|d| (d.name.clone(), Counts::of(d))).collect();
     let total = rows.iter().fold(Counts::default(), |acc, (_, c)| acc.merge(*c));
 
     if ctx.json {
-        let files: Vec<_> = rows.iter().map(|(n, c)| serde_json::json!({ "file": n, "counts": c })).collect();
-        return json::print(&serde_json::json!({ "files": files, "total": total }));
+        let files = rows.iter().map(|(file, counts)| FileCounts { file: file.clone(), counts: *counts }).collect();
+        return json::print(&CountOutput { files, total });
     }
 
     let mut t = Table::new(&[

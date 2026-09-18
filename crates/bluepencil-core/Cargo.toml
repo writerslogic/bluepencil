@@ -12,6 +12,7 @@ keywords = ["writing", "prose", "text-analysis", "fiction", "editing"]
 categories = ["text-processing"]
 
 [dependencies]
+schemars.workspace = true
 serde.workspace = true
 similar.workspace = true
 unicode-segmentation.workspace = true
