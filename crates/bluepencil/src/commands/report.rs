@@ -10,8 +10,9 @@ use bluepencil_core::stats::readability::Readability;
 use bluepencil_core::stats::{Summary, per_thousand};
 use bluepencil_core::{Document, Lexicons};
 use schemars::JsonSchema;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
+use crate::cache::Cache;
 use crate::cli::ReportArgs;
 use crate::context::Context;
 use crate::output::human::{minutes, thousands};
@@ -24,7 +25,7 @@ pub struct ReportOutput {
     pub files: Vec<Metrics>,
 }
 
-#[derive(Debug, Clone, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct Metrics {
     pub name: String,
     pub counts: Counts,
@@ -122,6 +123,21 @@ pub fn measure(ctx: &Context, docs: &[Document], name: &str) -> Metrics {
     m
 }
 
+fn measure_cached(ctx: &Context, cache: &Cache, doc: &Document, name: &str, use_cache: bool) -> Metrics {
+    // The cache key is content + config only, not `name`, so the same file cached under one
+    // name (e.g. a single-file report's "all files") and then looked up under another (its own
+    // path, in a later multi-file report) still hits -- but the retrieved value must be
+    // relabeled to the name this call actually asked for, or the wrong filename leaks into
+    // the "by file" breakdown.
+    if let Some(mut m) = cache.get(doc, use_cache) {
+        m.name = name.to_string();
+        return m;
+    }
+    let m = measure(ctx, std::slice::from_ref(doc), name);
+    cache.put(doc, &m);
+    m
+}
+
 /// Word-weighted average of each document's scores.
 fn combined_readability(docs: &[Document]) -> Readability {
     let scores: Vec<Readability> = docs.iter().map(readability::document).collect();
@@ -147,9 +163,18 @@ pub fn run(ctx: &Context, args: &ReportArgs) -> Result<()> {
     }
 
     let docs = ctx.documents(&args.input)?;
-    let total = measure(ctx, &docs, "all files");
+    let cache = ctx.cache();
+    let use_cache = !args.no_cache;
+    // `overused`, `top_words`, and `diversity` look across all documents together, so only a
+    // single-document `total` (docs.len() == 1) is safe to serve from the per-file cache; with
+    // more than one document the total must see every document's raw words at once.
+    let total = if docs.len() == 1 {
+        measure_cached(ctx, &cache, &docs[0], "all files", use_cache)
+    } else {
+        measure(ctx, &docs, "all files")
+    };
     let files: Vec<Metrics> = if docs.len() > 1 {
-        docs.iter().map(|d| measure(ctx, std::slice::from_ref(d), &d.name)).collect()
+        docs.iter().map(|d| measure_cached(ctx, &cache, d, &d.name, use_cache)).collect()
     } else {
         Vec::new()
     };

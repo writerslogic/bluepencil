@@ -1,9 +1,9 @@
 use schemars::JsonSchema;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::document::Document;
 
-#[derive(Debug, Clone, Copy, Default, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, JsonSchema)]
 pub struct DialogueRatio {
     pub dialogue_words: usize,
     pub narration_words: usize,

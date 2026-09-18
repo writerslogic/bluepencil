@@ -1,12 +1,12 @@
 use schemars::JsonSchema;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::document::Document;
 
 pub const READING_WPM: f64 = 238.0;
 pub const SPEAKING_WPM: f64 = 150.0;
 
-#[derive(Debug, Clone, Copy, Default, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, JsonSchema)]
 pub struct Counts {
     pub words: usize,
     pub characters: usize,

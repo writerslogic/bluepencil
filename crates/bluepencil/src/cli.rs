@@ -319,4 +319,7 @@ pub struct ReportArgs {
     /// Number of points to sample between --trend-since and HEAD
     #[arg(long, default_value_t = 8)]
     pub trend_points: usize,
+    /// Skip reading the per-file analysis cache (still refreshes it for next time)
+    #[arg(long)]
+    pub no_cache: bool,
 }

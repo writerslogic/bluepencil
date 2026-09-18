@@ -60,6 +60,10 @@ impl Context {
     pub fn echo_ignore(&self) -> WordSet {
         WordSet::from_list(self.config.echoes.ignore.iter().map(String::as_str))
     }
+
+    pub fn cache(&self) -> crate::cache::Cache {
+        crate::cache::Cache::open(&self.base, &self.config)
+    }
 }
 
 fn strs(v: &[String]) -> Vec<&str> {
