@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use crate::document::Document;
@@ -5,7 +6,7 @@ use crate::lexicon::Lexicons;
 use crate::span::Span;
 use crate::stats::ngram;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Repeat {
     pub phrase: String,
     pub words: usize,

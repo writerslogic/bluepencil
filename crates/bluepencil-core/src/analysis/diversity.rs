@@ -1,10 +1,11 @@
 use std::collections::HashSet;
 
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use crate::stats::mattr::{mattr, ttr};
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, JsonSchema)]
 pub struct Diversity {
     pub words: usize,
     pub unique: usize,

@@ -1,7 +1,8 @@
+use schemars::JsonSchema;
 use serde::Serialize;
 
 /// Byte range into a document's source text.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, JsonSchema)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

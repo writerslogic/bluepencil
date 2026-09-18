@@ -20,6 +20,7 @@ pub mod rhythm;
 pub mod starters;
 pub mod tics;
 
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use crate::document::Document;
@@ -27,7 +28,7 @@ use crate::lexicon::PhraseSet;
 use crate::span::Span;
 
 /// A located observation a writer may want to act on.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Finding {
     pub rule: &'static str,
     pub message: String,

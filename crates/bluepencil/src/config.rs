@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub const FILE_NAME: &str = "bluepencil.toml";
@@ -139,7 +140,7 @@ impl Check {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum Severity {
     #[default]

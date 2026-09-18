@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::Finding;
 use crate::document::Document;
 use crate::span::Span;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Starters {
     pub sentence: Vec<(String, usize)>,
     pub paragraph: Vec<(String, usize)>,

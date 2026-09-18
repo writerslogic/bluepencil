@@ -1,9 +1,10 @@
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use crate::document::Document;
 use crate::lexicon::Lexicons;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Overused {
     pub word: String,
     pub count: usize,

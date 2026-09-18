@@ -1,7 +1,8 @@
+use schemars::JsonSchema;
 use serde::Serialize;
 use similar::{ChangeTag, TextDiff};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ChangeKind {
     Insert,
@@ -9,13 +10,13 @@ pub enum ChangeKind {
     Equal,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct WordChange {
     pub tag: ChangeKind,
     pub word: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct WordDiff {
     pub changes: Vec<WordChange>,
     pub added: usize,

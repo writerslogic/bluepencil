@@ -3,9 +3,10 @@ pub mod mattr;
 pub mod ngram;
 pub mod readability;
 
+use schemars::JsonSchema;
 use serde::Serialize;
 
-#[derive(Debug, Clone, Copy, Default, Serialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize, JsonSchema)]
 pub struct Summary {
     pub count: usize,
     pub mean: f64,

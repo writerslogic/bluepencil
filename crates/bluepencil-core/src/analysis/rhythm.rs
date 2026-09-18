@@ -1,3 +1,4 @@
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::Finding;
@@ -5,7 +6,7 @@ use crate::document::Document;
 use crate::span::Span;
 use crate::stats::Summary;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Rhythm {
     pub lengths: Vec<usize>,
     pub summary: Summary,

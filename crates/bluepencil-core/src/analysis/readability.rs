@@ -1,9 +1,10 @@
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use crate::document::{Document, Sentence};
 use crate::stats::readability::{Readability, score};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct SectionReadability {
     pub title: String,
     pub scores: Readability,

@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use crate::document::Document;
@@ -7,7 +8,7 @@ use crate::lexicon::{Lexicons, WordSet};
 use crate::span::Span;
 use crate::text::lemma::stem;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct Echo {
     pub word: String,
     pub first: Span,

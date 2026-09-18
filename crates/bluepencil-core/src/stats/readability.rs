@@ -1,9 +1,10 @@
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use crate::document::Sentence;
 use crate::text::syllables;
 
-#[derive(Debug, Clone, Copy, Default, Serialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize, JsonSchema)]
 pub struct Readability {
     pub flesch_reading_ease: f64,
     pub flesch_kincaid_grade: f64,

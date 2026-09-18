@@ -1,17 +1,18 @@
 use std::collections::HashMap;
 
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::echoes::proper_nouns;
 use crate::document::Document;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct NameVariant {
     pub spelling: String,
     pub count: usize,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct NameCluster {
     pub variants: Vec<NameVariant>,
 }
