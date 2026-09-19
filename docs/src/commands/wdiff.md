@@ -1,5 +1,11 @@
 # wdiff
 
-> Planned. Not yet available.
+A word-level diff between two versions of the same text, with net words added and removed. Either argument can be `-` to read stdin, but not both.
 
-A word-level diff between drafts with net words added or cut.
+```sh
+bluepencil wdiff draft-1.md draft-2.md
+```
+
+Added words are wrapped in `{+...+}`, removed words in `[-...-]`.
+
+Add `--json` for machine-readable output.
