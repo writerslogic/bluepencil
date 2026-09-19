@@ -19,7 +19,7 @@
 
 ---
 
-It understands Markdown, Fountain screenplays, and plain text, handles curly quotes and abbreviations correctly, and reports `file:line:column` locations your editor can jump to.
+It understands Markdown, Fountain screenplays, plain text, and Word (`.docx`), handles curly quotes and abbreviations correctly, and reports `file:line:column` locations your editor can jump to.
 
 ## Install
 
@@ -92,7 +92,7 @@ Add limits under `[check]` in `bluepencil.toml`, then run `bluepencil check` in 
 
 ## Roadmap
 
-`.docx` input, a language server, and a VS Code extension.
+`config`, to show the effective configuration and where each value came from.
 
 ## License
 

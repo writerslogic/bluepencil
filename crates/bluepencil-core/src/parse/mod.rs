@@ -1,3 +1,4 @@
+pub mod docx;
 mod fountain;
 mod frontmatter;
 mod markdown;

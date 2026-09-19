@@ -12,7 +12,10 @@ keywords = ["writing", "prose", "text-analysis", "fiction", "editing"]
 categories = ["text-processing"]
 
 [dependencies]
+anyhow.workspace = true
+quick-xml.workspace = true
 schemars.workspace = true
 serde.workspace = true
 similar.workspace = true
 unicode-segmentation.workspace = true
+zip.workspace = true

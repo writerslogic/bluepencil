@@ -35,6 +35,7 @@ pub enum InputFormat {
     Plain,
     Markdown,
     Fountain,
+    Docx,
 }
 
 #[derive(Clone, Copy, ValueEnum)]

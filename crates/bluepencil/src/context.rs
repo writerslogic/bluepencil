@@ -14,19 +14,27 @@ pub struct Context {
     pub json: bool,
     pub limit: usize,
     base: std::path::PathBuf,
-    format: Option<Format>,
+    format: Option<InputFormat>,
+}
+
+fn to_format(f: InputFormat) -> Option<Format> {
+    match f {
+        InputFormat::Plain => Some(Format::Plain),
+        InputFormat::Markdown => Some(Format::Markdown),
+        InputFormat::Fountain => Some(Format::Fountain),
+        InputFormat::Docx => None,
+    }
+}
+
+fn is_docx_path(path: &std::path::Path) -> bool {
+    path.extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("docx"))
 }
 
 impl Context {
     pub fn new(global: &Global) -> Result<Self> {
         let (config, base) = config::load(global.config.as_deref())?;
         let lexicons = build_lexicons(&config, &base)?;
-        let format = global.input_format.map(|f| match f {
-            InputFormat::Plain => Format::Plain,
-            InputFormat::Markdown => Format::Markdown,
-            InputFormat::Fountain => Format::Fountain,
-        });
-        Ok(Self { config, lexicons, json: global.json, limit: global.limit, base, format })
+        Ok(Self { config, lexicons, json: global.json, limit: global.limit, base, format: global.input_format })
     }
 
     pub fn documents(&self, input: &Input) -> Result<Vec<Document>> {
@@ -44,14 +52,26 @@ impl Context {
         let mut docs = Vec::new();
         let (stdin, paths): (Vec<_>, Vec<_>) = patterns.into_iter().partition(|p| p == "-");
         if !stdin.is_empty() {
+            if matches!(self.format, Some(InputFormat::Docx)) {
+                bail!("`--as docx` is not supported on stdin; docx is a binary archive, pass a file path instead");
+            }
             let mut text = String::new();
             std::io::stdin().read_to_string(&mut text).context("reading stdin")?;
-            docs.push(Document::parse("<stdin>", text, self.format.unwrap_or(Format::Markdown)));
+            let format = self.format.and_then(to_format).unwrap_or(Format::Markdown);
+            docs.push(Document::parse("<stdin>", text, format));
         }
         for path in glob::expand(&paths, &base)? {
             let bytes = std::fs::read(&path).with_context(|| format!("reading {}", path.display()))?;
+            let as_docx =
+                matches!(self.format, Some(InputFormat::Docx)) || (self.format.is_none() && is_docx_path(&path));
+            if as_docx {
+                let text = bluepencil_core::parse::docx::extract(&bytes)
+                    .with_context(|| format!("reading {} as .docx", path.display()))?;
+                docs.push(Document::parse(glob::display(&path), text, Format::Markdown));
+                continue;
+            }
             let text = String::from_utf8(bytes).with_context(|| format!("{} is not UTF-8 text", path.display()))?;
-            let format = self.format.unwrap_or_else(|| Format::from_path(&path));
+            let format = self.format.and_then(to_format).unwrap_or_else(|| Format::from_path(&path));
             docs.push(Document::parse(glob::display(&path), text, format));
         }
         Ok(docs)
