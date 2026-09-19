@@ -64,13 +64,23 @@ Pass files or globs, pipe text with `-`, or set `project.files` in `bluepencil.t
 | `overused` | Words used far more than in general English usage |
 | `readability` | Flesch, Flesch-Kincaid, Gunning Fog, Coleman-Liau, ARI, per section |
 | `dialogue` | Dialogue versus narration, per section |
+| `continuity` | Character names that may be the same person spelled inconsistently |
+| `cast` | Character name mentions per section |
+| `nominal` | Nominalizations ("make a decision" where a verb would be stronger) |
+| `tags` | Dialogue tags, separated into plain, adverb-modified, and showy |
+| `speakers` | Who speaks and how much, where attribution can be inferred |
+| `tense` | Passages that drift from the dominant tense |
+| `pov` | Passages that drift from the dominant point of view |
+| `arc` | Pacing profile per section: word count, dialogue ratio, sentence rhythm, style density |
 | `report` | All of the above in one summary, optionally as HTML |
 | `wdiff` | Word-level diff between two versions of the same text |
 | `split` | Split a manuscript into one file per heading |
 | `join` | Concatenate manuscript files into one |
+| `progress` | Word count change per file since a git commit or date |
 | `check` | Exit nonzero when configured limits are exceeded |
 | `init` | Write a starter `bluepencil.toml` |
 | `completions` | Shell completions |
+| `schema` | JSON Schema for a command's `--json` output |
 
 Every command accepts `--json`. List commands accept `--summary` to group results by word.
 
@@ -82,7 +92,7 @@ Add limits under `[check]` in `bluepencil.toml`, then run `bluepencil check` in 
 
 ## Roadmap
 
-`nominal`, dialogue `tags` and `speakers`, `cast`, `tense` and `pov` drift, `progress` tracking, `.docx` input, a language server, and a VS Code extension.
+`.docx` input, a language server, and a VS Code extension.
 
 ## License
 

@@ -1,7 +1,9 @@
 use std::ops::RangeInclusive;
 
 use anyhow::Result;
-use bluepencil_core::analysis::{adverbs, cliches, echoes, filter_words, hedges, passive, rhythm, starters, tics};
+use bluepencil_core::analysis::{
+    adverbs, cliches, echoes, filter_words, hedges, nominalization, passive, rhythm, starters, tics,
+};
 use bluepencil_core::{Document, Finding};
 use schemars::JsonSchema;
 use serde::Serialize;
@@ -98,6 +100,7 @@ fn evaluate(c: &Check, m: &Metrics, out: &mut Vec<Violation>) {
     max("hedges", "hedges per 1k words", c.max_hedges_per_1k, m.per_1k(m.hedges));
     max("tics", "tics per 1k words", c.max_tics_per_1k, m.per_1k(m.tics));
     max("passive", "passive per 1k words", c.max_passive_per_1k, m.per_1k(m.passive));
+    max("nominal", "nominalizations per 1k words", c.max_nominal_per_1k, m.per_1k(m.nominal));
     max("overused", "overused words", c.max_overused.map(|v| v as f64), m.overused as f64);
     max("cliches", "cliches", c.max_cliches.map(|v| v as f64), m.cliches as f64);
     max(
@@ -188,6 +191,12 @@ fn evaluate_scoped(ctx: &Context, doc: &Document, ranges: &[RangeInclusive<usize
         "passive per 1k words (changed lines)",
         c.max_passive_per_1k,
         per_1k(scoped_count(doc, ranges, &passive::find(doc, lex))),
+    );
+    max(
+        "nominal",
+        "nominalizations per 1k words (changed lines)",
+        c.max_nominal_per_1k,
+        per_1k(scoped_count(doc, ranges, &nominalization::find(doc, lex))),
     );
     max(
         "cliches",

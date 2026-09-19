@@ -1,4 +1,6 @@
 mod adverbs;
+mod arc;
+mod cast;
 mod check;
 mod cliches;
 mod completions;
@@ -13,17 +15,22 @@ mod hedges;
 mod histogram;
 mod init;
 mod join;
+mod nominal;
 mod outline;
 mod overused;
 mod passive;
+mod pov;
 mod progress;
 mod readability;
 mod repeats;
 pub mod report;
 mod rhythm;
 mod schema;
+mod speakers;
 mod split;
 mod starters;
+mod tags;
+mod tense;
 mod tics;
 pub mod trend;
 mod unique;
@@ -71,6 +78,13 @@ pub fn run(cli: Cli) -> Result<Status> {
         Command::Readability(a) => readability::run(&ctx, &a),
         Command::Dialogue(a) => dialogue::run(&ctx, &a),
         Command::Continuity(a) => continuity::run(&ctx, &a),
+        Command::Cast(a) => cast::run(&ctx, &a),
+        Command::Nominal(a) => nominal::run(&ctx, &a),
+        Command::Tags(a) => tags::run(&ctx, &a),
+        Command::Speakers(a) => speakers::run(&ctx, &a),
+        Command::Tense(a) => tense::run(&ctx, &a),
+        Command::Pov(a) => pov::run(&ctx, &a),
+        Command::Arc(a) => arc::run(&ctx, &a),
         Command::Report(a) => report::run(&ctx, &a),
         Command::Check(a) => return check::run(&ctx, &a),
         Command::Init { .. } | Command::Completions { .. } | Command::Schema { .. } => unreachable!(),

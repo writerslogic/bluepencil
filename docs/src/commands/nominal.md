@@ -1,5 +1,13 @@
 # nominal
 
-> Planned. Not yet available.
+Nominalizations: a weak verb plus a noun where a single stronger verb would do, such as "make a decision" instead of "decide". Matched against a bundled list of common patterns.
 
-Nominalizations such as "make a decision" where a verb would be stronger.
+```sh
+bluepencil nominal
+```
+
+## Options
+
+- `--summary` group by phrase
+
+Add `--json` for machine-readable output.

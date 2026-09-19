@@ -8,11 +8,17 @@ use crate::exit::Status;
 pub fn run(command: &str) -> Result<Status> {
     let schema = match command {
         "count" => schemars::schema_for!(super::count::CountOutput),
-        "adverbs" | "cliches" | "filter" | "hedges" | "passive" | "tics" => {
+        "adverbs" | "cliches" | "filter" | "hedges" | "passive" | "tics" | "nominal" => {
             schemars::schema_for!(super::ListOutput)
         }
         "check" => schemars::schema_for!(super::check::CheckOutput),
         "continuity" => schemars::schema_for!(super::continuity::ContinuityOutput),
+        "cast" => schemars::schema_for!(super::cast::CastOutput),
+        "tags" => schemars::schema_for!(super::tags::TagsOutput),
+        "speakers" => schemars::schema_for!(Vec<super::speakers::SpeakerTally>),
+        "tense" => schemars::schema_for!(Vec<super::tense::TenseOutput>),
+        "pov" => schemars::schema_for!(Vec<super::pov::PovOutput>),
+        "arc" => schemars::schema_for!(Vec<super::arc::ArcOutput>),
         "freq" => schemars::schema_for!(super::freq::FreqOutput),
         "progress" => schemars::schema_for!(super::progress::ProgressOutput),
         "echoes" => schemars::schema_for!(Vec<super::echoes::EchoesFileOutput>),

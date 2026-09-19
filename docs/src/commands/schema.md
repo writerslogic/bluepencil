@@ -6,5 +6,7 @@ Prints the JSON Schema for a command's `--json` output.
 bluepencil schema count
 ```
 
-Only commands migrated onto typed output structs are covered; the rest still produce valid
-JSON, they just don't have a schema yet. Currently covered: `count`.
+Every command with structured `--json` output is covered: `adverbs`, `arc`, `cast`, `check`,
+`cliches`, `continuity`, `count`, `dialogue`, `echoes`, `filter`, `freq`, `hedges`, `histogram`,
+`nominal`, `outline`, `overused`, `passive`, `pov`, `progress`, `readability`, `repeats`,
+`report`, `rhythm`, `speakers`, `starters`, `tags`, `tense`, `tics`, `unique`, and `wdiff`.

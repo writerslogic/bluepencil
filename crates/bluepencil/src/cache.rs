@@ -128,6 +128,7 @@ mod tests {
             cliches: 0,
             tics: 0,
             passive: 0,
+            nominal: 0,
             overused: 0,
             repeated_starter_runs: 0,
             monotonous_runs: 0,

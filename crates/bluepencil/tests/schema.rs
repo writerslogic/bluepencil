@@ -55,6 +55,13 @@ fn every_migrated_command_prints_a_valid_schema() {
         "report",
         "unique",
         "histogram",
+        "nominal",
+        "tags",
+        "speakers",
+        "cast",
+        "tense",
+        "pov",
+        "arc",
     ] {
         let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
             .args(["schema", command])

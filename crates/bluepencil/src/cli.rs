@@ -92,6 +92,20 @@ pub enum Command {
     Dialogue(Input),
     /// Character names that may be the same person spelled inconsistently, across all inputs
     Continuity(Input),
+    /// Character name mentions per section, across all inputs
+    Cast(Input),
+    /// Nominalizations, such as "make a decision" where a verb would be stronger
+    Nominal(ListArgs),
+    /// Dialogue tags, separating said/asked from showier verbs and adverb-modified tags
+    Tags(ListArgs),
+    /// Who speaks and how much, where attribution can be inferred
+    Speakers(Input),
+    /// Passages that drift from the document's dominant tense
+    Tense(TenseArgs),
+    /// Passages that drift from the document's dominant point of view
+    Pov(PovArgs),
+    /// Pacing profile per section: word count, dialogue ratio, sentence rhythm, style density
+    Arc(Input),
     /// Everything at a glance
     Report(ReportArgs),
     /// Fail when configured thresholds are exceeded (for CI and hooks)
@@ -294,6 +308,24 @@ pub struct StartersArgs {
     /// Flag runs of at least this many sentences with the same opener
     #[arg(long)]
     pub run: Option<usize>,
+}
+
+#[derive(Args)]
+pub struct TenseArgs {
+    #[command(flatten)]
+    pub input: Input,
+    /// Flag runs of at least this many consecutive sentences in the non-dominant tense
+    #[arg(long, default_value_t = 3)]
+    pub run: usize,
+}
+
+#[derive(Args)]
+pub struct PovArgs {
+    #[command(flatten)]
+    pub input: Input,
+    /// Flag runs of at least this many consecutive sentences in a non-dominant point of view
+    #[arg(long, default_value_t = 3)]
+    pub run: usize,
 }
 
 #[derive(Args)]

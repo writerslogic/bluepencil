@@ -6,3 +6,4 @@
 /editors/vscode/out
 *.vsix
 /report.html
+.bluepencil-cache

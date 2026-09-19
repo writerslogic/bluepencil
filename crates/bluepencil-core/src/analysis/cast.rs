@@ -6,7 +6,7 @@ use serde::Serialize;
 use super::echoes::proper_nouns;
 use crate::document::Document;
 
-#[derive(Debug, Clone, Serialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, JsonSchema)]
 pub struct NameVariant {
     pub spelling: String,
     pub count: usize,
@@ -15,6 +15,43 @@ pub struct NameVariant {
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct NameCluster {
     pub variants: Vec<NameVariant>,
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct SectionMentions {
+    pub section: String,
+    pub names: Vec<NameVariant>,
+}
+
+/// Character name mentions per section (or per file, for a document with no headings),
+/// most-mentioned first. `ignore` drops names that aren't characters, same list
+/// `continuity` uses for spelling-drift false positives.
+pub fn mentions_by_section(doc: &Document, ignore: &std::collections::HashSet<String>) -> Vec<SectionMentions> {
+    let names = proper_nouns(doc);
+    let mut out: Vec<(Option<usize>, HashMap<String, usize>)> = Vec::new();
+    for p in &doc.paragraphs {
+        let counts = match out.last_mut() {
+            Some((sec, m)) if *sec == p.section => m,
+            _ => {
+                out.push((p.section, HashMap::new()));
+                &mut out.last_mut().unwrap().1
+            }
+        };
+        for w in p.sentences.iter().flat_map(|s| &s.words) {
+            if names.contains(w.lower.as_str()) && !ignore.contains(&w.lower) {
+                *counts.entry(w.lower.clone()).or_default() += 1;
+            }
+        }
+    }
+    out.into_iter()
+        .filter(|(_, counts)| !counts.is_empty())
+        .map(|(sec, counts)| {
+            let mut variants: Vec<NameVariant> =
+                counts.into_iter().map(|(spelling, count)| NameVariant { spelling, count }).collect();
+            variants.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.spelling.cmp(&b.spelling)));
+            SectionMentions { section: doc.section_title(sec).to_string(), names: variants }
+        })
+        .collect()
 }
 
 /// Proper nouns across `docs` likely to be the same name spelled inconsistently: a single
@@ -97,6 +134,24 @@ mod tests {
 
     fn doc(text: &str) -> Document {
         Document::parse("test.md".to_string(), text.to_string(), Format::Markdown)
+    }
+
+    #[test]
+    fn tallies_mentions_per_section() {
+        let d = doc("# One\n\nI saw Mara today. I saw Mara again.\n\n# Two\n\nI saw Elaine once.");
+        let sections = mentions_by_section(&d, &std::collections::HashSet::new());
+        assert_eq!(sections.len(), 2);
+        assert_eq!(sections[0].section, "One");
+        assert_eq!(sections[0].names, vec![NameVariant { spelling: "mara".to_string(), count: 2 }]);
+        assert_eq!(sections[1].section, "Two");
+        assert_eq!(sections[1].names, vec![NameVariant { spelling: "elaine".to_string(), count: 1 }]);
+    }
+
+    #[test]
+    fn ignore_list_drops_a_name_from_section_tallies() {
+        let d = doc("# One\n\nI saw Mara today. I saw Mara again.");
+        let ignore: std::collections::HashSet<String> = ["mara".to_string()].into_iter().collect();
+        assert!(mentions_by_section(&d, &ignore).is_empty());
     }
 
     fn names(docs: &[Document]) -> Vec<Vec<String>> {

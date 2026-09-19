@@ -1,8 +1,10 @@
 pub mod adverbs;
+pub mod arc;
 pub mod cast;
 pub mod cliches;
 pub mod counts;
 pub mod dialogue;
+pub mod dialogue_tags;
 pub mod diff;
 pub mod distribution;
 pub mod diversity;
@@ -11,13 +13,16 @@ pub mod filter_words;
 pub mod frequency;
 pub mod hapax;
 pub mod hedges;
+pub mod nominalization;
 pub mod outline;
 pub mod overuse;
 pub mod passive;
+pub mod pov;
 pub mod readability;
 pub mod repetition;
 pub mod rhythm;
 pub mod starters;
+pub mod tense;
 pub mod tics;
 
 use schemars::JsonSchema;

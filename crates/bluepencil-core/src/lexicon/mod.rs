@@ -98,6 +98,36 @@ impl PhraseSet {
     }
 }
 
+/// A `weak verb + noun` phrase and the stronger verb it could be replaced with
+/// ("make a decision" -> "decide"), matched the same way as [`PhraseSet`].
+#[derive(Debug, Clone, Default)]
+pub struct NominalizationSet {
+    phrases: PhraseSet,
+    suggestions: HashMap<String, String>,
+}
+
+impl NominalizationSet {
+    /// Parses `phrase\tsuggested verb` rows, one per line.
+    pub fn from_tsv(src: &str) -> Self {
+        let mut set = Self::default();
+        for line in src.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')) {
+            let Some((phrase, verb)) = line.split_once('\t') else { continue };
+            set.phrases.extend([phrase]);
+            set.suggestions.insert(fold(phrase), verb.trim().to_string());
+        }
+        set
+    }
+
+    pub fn find(&self, doc: &Document) -> Vec<PhraseMatch> {
+        self.phrases.find(doc)
+    }
+
+    /// The suggested verb for a phrase as returned by [`Self::find`] (already folded).
+    pub fn suggestion(&self, phrase: &str) -> Option<&str> {
+        self.suggestions.get(phrase).map(String::as_str)
+    }
+}
+
 /// Built-in word lists merged with the user's additions and removals.
 #[derive(Debug, Clone)]
 pub struct Lexicons {
@@ -108,6 +138,9 @@ pub struct Lexicons {
     pub cliches: PhraseSet,
     pub tics: PhraseSet,
     pub irregular_participles: WordSet,
+    pub dialogue_tags: WordSet,
+    pub said_bookisms: WordSet,
+    pub nominalizations: NominalizationSet,
     /// Baseline English usage, word -> occurrences per million tokens.
     pub english_frequency: HashMap<String, f64>,
 }
@@ -123,6 +156,9 @@ impl Default for Lexicons {
             cliches: PhraseSet::from_list(lines(CLICHES)),
             tics: PhraseSet::default(),
             irregular_participles: WordSet::from_list(lines(IRREGULAR_PARTICIPLES)),
+            dialogue_tags: WordSet::from_list(lines(DIALOGUE_TAGS)),
+            said_bookisms: WordSet::from_list(lines(SAID_BOOKISMS)),
+            nominalizations: NominalizationSet::from_tsv(NOMINALIZATIONS),
             english_frequency: frequency_table(ENGLISH_FREQUENCY).map(|(w, f)| (w.to_string(), f)).collect(),
         }
     }

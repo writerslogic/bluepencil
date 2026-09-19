@@ -3,8 +3,8 @@ use bluepencil_core::analysis::counts::Counts;
 use bluepencil_core::analysis::dialogue::{self, DialogueRatio};
 use bluepencil_core::analysis::diversity::{Diversity, diversity};
 use bluepencil_core::analysis::{
-    adverbs, cliches, echoes, filter_words, frequency, hedges, overuse, passive, readability, repetition, rhythm,
-    starters, tics,
+    adverbs, cliches, echoes, filter_words, frequency, hedges, nominalization, overuse, passive, readability,
+    repetition, rhythm, starters, tics,
 };
 use bluepencil_core::stats::readability::Readability;
 use bluepencil_core::stats::{Summary, per_thousand};
@@ -40,6 +40,7 @@ pub struct Metrics {
     pub cliches: usize,
     pub tics: usize,
     pub passive: usize,
+    pub nominal: usize,
     pub overused: usize,
     pub repeated_starter_runs: usize,
     pub monotonous_runs: usize,
@@ -73,6 +74,7 @@ pub fn measure(ctx: &Context, docs: &[Document], name: &str) -> Metrics {
         cliches: 0,
         tics: 0,
         passive: 0,
+        nominal: 0,
         overused: overuse::overused(docs, lex, 3.0, 3).len(),
         repeated_starter_runs: 0,
         monotonous_runs: 0,
@@ -97,6 +99,7 @@ pub fn measure(ctx: &Context, docs: &[Document], name: &str) -> Metrics {
         m.cliches += cliches::find(d, lex).len();
         m.tics += tics::find(d, lex).len();
         m.passive += passive::find(d, lex).len();
+        m.nominal += nominalization::find(d, lex).len();
         let st = starters::starters(d, cfg.starters.run);
         m.repeated_starter_runs += st.findings.len();
         for (w, n) in st.sentence {
@@ -228,6 +231,7 @@ fn print_human(m: &Metrics, files: &[Metrics]) {
         ("cliches", m.cliches),
         ("tics", m.tics),
         ("passive", m.passive),
+        ("nominal", m.nominal),
         ("overused", m.overused),
         ("repeated openers", m.repeated_starter_runs),
         ("monotonous runs", m.monotonous_runs),
