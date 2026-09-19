@@ -1,4 +1,4 @@
-use super::{phrase_findings, Finding};
+use super::{Finding, phrase_findings};
 use crate::document::Document;
 use crate::lexicon::Lexicons;
 
