@@ -1,0 +1,108 @@
+{
+  "name": "bluepencil",
+  "displayName": "bluepencil",
+  "description": "Prose analysis for writers: echoes, repeats, rhythm, dialogue, readability, and more",
+  "version": "0.1.0",
+  "publisher": "writerslogic",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/writerslogic/bluepencil.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onLanguage:fountain",
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "fountain",
+        "extensions": [
+          ".fountain"
+        ],
+        "aliases": [
+          "Fountain"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "bluepencil.checkFile",
+        "title": "bluepencil: Check current file",
+        "category": "bluepencil"
+      },
+      {
+        "command": "bluepencil.runReport",
+        "title": "bluepencil: Run report",
+        "category": "bluepencil"
+      },
+      {
+        "command": "bluepencil.restartLsp",
+        "title": "bluepencil: Restart language server",
+        "category": "bluepencil"
+      }
+    ],
+    "configuration": {
+      "title": "bluepencil",
+      "properties": {
+        "bluepencil.lsp.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Try to launch the bluepencil-lsp language server for live inline diagnostics. Falls back to CLI-based checks on save if the server is unavailable."
+        },
+        "bluepencil.lsp.path": {
+          "type": "string",
+          "default": "bluepencil-lsp",
+          "description": "Path to the bluepencil-lsp binary. Resolved via $PATH if not absolute."
+        },
+        "bluepencil.cli.path": {
+          "type": "string",
+          "default": "bluepencil",
+          "description": "Path to the bluepencil CLI binary. Resolved via $PATH if not absolute."
+        },
+        "bluepencil.cli.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run CLI-based checks on save (used when the language server is disabled or unavailable)."
+        },
+        "bluepencil.cli.commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "adverbs",
+            "passive",
+            "cliches",
+            "filter",
+            "hedges",
+            "tics"
+          ],
+          "description": "bluepencil subcommands to run on save for inline diagnostics. Each must support --json with a findings array carrying file/line/column (the 'list' style commands: adverbs, passive, cliches, filter, hedges, tics, nominal, overused, etc.). Commands with a different JSON shape (e.g. echoes) are not supported here."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
