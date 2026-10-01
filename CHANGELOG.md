@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-01
+
 ### Added
 
 - Markdown, Fountain, and plain text parsing with offset-preserving markup removal.
@@ -13,3 +15,9 @@ All notable changes to this project are documented here. The format follows [Kee
 - `bluepencil.toml` configuration with project globs, custom word lists, and CI thresholds.
 - `[check.severity]` to downgrade a threshold to a non-failing warning.
 - `bluepencil check --since <git-ref>` to scope location-based rules to changed lines.
+- Word (`.docx`) input, a language server (`bluepencil-lsp`), and a VS Code extension.
+- Commands: `nominal`, `tags`, `speakers`, `cast`, `tense`, `pov`, `arc`, `progress`, `config`, `schema`.
+- Model-backed commands `facts` (continuity ledger), `voice` (character voice consistency), and `scenes` (scene audit), and an `--explain` flag on the word-list commands and `echoes`. Each sends the text to the Claude API, is off unless asked for, and pins every cited quote back to a real `file:line:column`. Configured under `[model]`.
+
+[Unreleased]: https://github.com/writerslogic/bluepencil/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/writerslogic/bluepencil/releases/tag/v0.1.0
