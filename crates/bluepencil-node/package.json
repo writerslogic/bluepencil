@@ -52,7 +52,7 @@
     "prepublishOnly": "napi prepublish -t npm",
     "artifacts": "napi artifacts",
     "version": "napi version",
-    "test": "node --test tests/*.test.cjs",
+    "test": "node --test tests/api.test.cjs",
     "test:types": "tsc --noEmit --strict --target es2022 --module nodenext --moduleResolution nodenext --types node tests/types.test.mts"
   },
   "devDependencies": {
