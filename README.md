@@ -50,7 +50,7 @@ brew install writerslogic/tap/bluepencil
 cargo install bluepencil
 ```
 
-From Node.js, `npm install bluepencil` gives you the same engine as native bindings; see [crates/bluepencil-node](crates/bluepencil-node/).
+From Node.js, `npm install bluepencil-node` gives you the same engine as native bindings; see [crates/bluepencil-node](crates/bluepencil-node/).
 
 Prebuilt binaries for macOS, Linux, and Windows are on the [releases page](https://github.com/writerslogic/bluepencil/releases), with shell and PowerShell installers. A [VS Code extension](editors/vscode/) and a language server (`bluepencil-lsp`) show findings inline; build the extension into a `.vsix` with `npx @vscode/vsce package` in `editors/vscode` and install it with `code --install-extension`. See [Editors](https://writerslogic.github.io/bluepencil/editors.html).
 
@@ -207,7 +207,7 @@ just demo      # the report on the sample novel in examples/
 just audit     # cargo deny
 ```
 
-The workspace is `bluepencil-core` (parsing, segmentation, statistics, and every analysis; no I/O), `bluepencil` (the CLI), `bluepencil-lsp` (the language server), and `bluepencil-node` (napi bindings published to npm as `bluepencil`). Word lists live in `crates/bluepencil-core/data` and are embedded at compile time.
+The workspace is `bluepencil-core` (parsing, segmentation, statistics, and every analysis; no I/O), `bluepencil` (the CLI), `bluepencil-lsp` (the language server), and `bluepencil-node` (napi bindings, published to npm under the same name). Word lists live in `crates/bluepencil-core/data` and are embedded at compile time.
 
 ## Why bluepencil
 

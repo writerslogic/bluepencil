@@ -1,15 +1,15 @@
-# bluepencil (Node.js)
+# bluepencil-node
 
 Native Node.js bindings for [bluepencil](https://github.com/writerslogic/bluepencil), the prose analysis toolkit for writers. Same engine as the CLI, no subprocess, no config file: pass text in, get located findings back.
 
 ```sh
-npm install bluepencil
+npm install bluepencil-node
 ```
 
-Prebuilt binaries ship for macOS (x64, arm64), Linux (x64, arm64), and Windows (x64). Node 18 or newer.
+Published as `bluepencil-node` (npm rejects `bluepencil` as too close to an unrelated package). Prebuilt binaries ship for macOS (x64, arm64), Linux (x64, arm64), and Windows (x64). Node 18 or newer.
 
 ```js
-import { checkStyle, findEchoes, report } from 'bluepencil';
+import { checkStyle, findEchoes, report } from 'bluepencil-node';
 
 const style = checkStyle(text, { format: 'plain' });
 // style.counts.adverbs, style.perThousand.passive, style.findings[0].location.line ...
