@@ -14,5 +14,5 @@ It has two modes:
   `--json` subcommands (`adverbs`, `passive`, `cliches`, `filter`, `hedges`, `tics`, and similar
   — configurable via `bluepencil.cli.commands`) and turns each finding into a diagnostic.
 
-Each GitHub release carries the extension as a `.vsix`; install it with `code --install-extension bluepencil-0.1.0.vsix`. See `editors/vscode/README.md` for settings details. A language server
+To install it, run `npx @vscode/vsce package` in `editors/vscode` and then `code --install-extension bluepencil-0.1.0.vsix`. See `editors/vscode/README.md` for settings details. A language server
 (`crates/bluepencil-lsp`) is what the extension's first mode talks to.

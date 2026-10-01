@@ -50,7 +50,7 @@ brew install writerslogic/tap/bluepencil
 cargo install bluepencil
 ```
 
-Prebuilt binaries for macOS, Linux, and Windows are on the [releases page](https://github.com/writerslogic/bluepencil/releases), with shell and PowerShell installers. A [VS Code extension](editors/vscode/) and a language server (`bluepencil-lsp`) show findings inline; the extension is attached to each release as a `.vsix` you can install with `code --install-extension`. See [Editors](https://writerslogic.github.io/bluepencil/editors.html).
+Prebuilt binaries for macOS, Linux, and Windows are on the [releases page](https://github.com/writerslogic/bluepencil/releases), with shell and PowerShell installers. A [VS Code extension](editors/vscode/) and a language server (`bluepencil-lsp`) show findings inline; build the extension into a `.vsix` with `npx @vscode/vsce package` in `editors/vscode` and install it with `code --install-extension`. See [Editors](https://writerslogic.github.io/bluepencil/editors.html).
 
 ## Quick start
 
