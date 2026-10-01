@@ -4,8 +4,10 @@ pub mod commands;
 mod config;
 mod context;
 mod exit;
+mod explain;
 mod gitdiff;
 mod glob;
+mod llm;
 mod output;
 
 use std::process::ExitCode;

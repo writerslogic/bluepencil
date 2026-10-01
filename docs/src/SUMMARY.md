@@ -46,6 +46,9 @@
 - [arc](commands/arc.md)
 - [report](commands/report.md)
 - [check](commands/check.md)
+- [facts](commands/facts.md)
+- [voice](commands/voice.md)
+- [scenes](commands/scenes.md)
 - [progress](commands/progress.md)
 - [wdiff](commands/wdiff.md)
 - [split](commands/split.md)
@@ -53,7 +56,4 @@
 - [init](commands/init.md)
 - [completions](commands/completions.md)
 - [schema](commands/schema.md)
-
-# Planned
-
 - [config](commands/config.md)

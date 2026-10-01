@@ -27,6 +27,7 @@ tokio = "1"
 toml = "1.1"
 tower-lsp = "0.20"
 unicode-segmentation = "1"
+ureq = { version = "3", features = ["json"] }
 zip = { version = "2.4", default-features = false, features = ["deflate"] }
 
 [profile.release]

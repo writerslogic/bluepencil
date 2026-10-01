@@ -18,6 +18,9 @@ pub struct Located {
     pub rule: &'static str,
     pub message: String,
     pub text: String,
+    /// Present only with `--explain`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<crate::explain::Note>,
 }
 
 pub fn locate(doc: &Document, f: &Finding) -> Located {
@@ -32,6 +35,7 @@ pub fn locate(doc: &Document, f: &Finding) -> Located {
         rule: f.rule,
         message: f.message.clone(),
         text: doc.text(f.span).to_string(),
+        note: None,
     }
 }
 

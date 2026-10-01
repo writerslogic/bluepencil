@@ -28,6 +28,24 @@ pub fn findings(items: &[(&Document, &Finding)]) {
     }
 }
 
+/// Like `findings`, with an editor's note under each finding that has one.
+pub fn findings_with_notes(items: &[(&Document, &Finding)], notes: &[Option<crate::explain::Note>]) {
+    if items.is_empty() {
+        println!("Nothing found.");
+        return;
+    }
+    for ((doc, f), note) in items.iter().zip(notes) {
+        println!("{}  {}  {}", location(doc, f.span), f.rule, f.message);
+        let text = excerpt(doc, f.span, 90);
+        if text != f.message {
+            println!("    {text}");
+        }
+        if let Some(note) = note {
+            crate::explain::print_note(note);
+        }
+    }
+}
+
 pub fn ranked(rows: &[(String, usize)], label: &str, limit: usize, total_words: Option<usize>) {
     if rows.is_empty() {
         println!("Nothing found.");

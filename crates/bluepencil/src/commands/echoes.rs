@@ -6,6 +6,7 @@ use serde::Serialize;
 
 use crate::cli::EchoesArgs;
 use crate::context::Context;
+use crate::explain::{self, Note, Target};
 use crate::output::human::{file_banner, ranked};
 use crate::output::{excerpt, json, location};
 
@@ -15,6 +16,9 @@ pub struct EchoLocated {
     pub first: String,
     pub second: String,
     pub distance: usize,
+    /// Present only with `--explain`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<Note>,
 }
 
 #[derive(Serialize, JsonSchema)]
@@ -32,6 +36,31 @@ pub fn run(ctx: &Context, args: &EchoesArgs) -> Result<()> {
     let names = args.names || cfg.include_names;
     let results: Vec<_> = docs.iter().map(|d| echoes(d, &ctx.lexicons, window, min_length, &ignore, names)).collect();
 
+    // Echoes are explained as the span from the first occurrence to the second, so the model
+    // sees both uses; notes line up with `results` flattened in order.
+    let messages: Vec<Vec<String>> = results
+        .iter()
+        .map(|es| es.iter().map(|e| format!("\"{}\" repeated {} words later", e.word, e.distance)).collect())
+        .collect();
+    let mut notes = if ctx.explain && !args.summary {
+        let targets: Vec<_> = docs
+            .iter()
+            .zip(&results)
+            .zip(&messages)
+            .flat_map(|((d, es), ms)| {
+                es.iter().zip(ms).map(move |(e, m)| Target {
+                    doc: d,
+                    span: Span::new(e.first.start, e.second.end),
+                    rule: "echoes",
+                    message: m,
+                })
+            })
+            .collect();
+        explain::annotate(ctx, &targets)?.into_iter()
+    } else {
+        Vec::new().into_iter()
+    };
+
     if ctx.json {
         let out: Vec<_> = docs
             .iter()
@@ -44,6 +73,7 @@ pub fn run(ctx: &Context, args: &EchoesArgs) -> Result<()> {
                         first: location(d, e.first),
                         second: location(d, e.second),
                         distance: e.distance,
+                        note: notes.next().flatten(),
                     })
                     .collect();
                 EchoesFileOutput { file: d.name.clone(), echoes }
@@ -69,6 +99,9 @@ pub fn run(ctx: &Context, args: &EchoesArgs) -> Result<()> {
         for e in es {
             println!("{}  {} ({} words apart)", location(doc, e.second), doc.text(e.second), e.distance);
             println!("    {}", excerpt(doc, Span::new(e.first.start, e.second.end), 100));
+            if let Some(note) = notes.next().flatten() {
+                explain::print_note(&note);
+            }
         }
     }
     println!("\n{total} echoes within {window} words");

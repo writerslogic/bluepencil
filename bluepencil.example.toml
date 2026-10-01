@@ -74,3 +74,14 @@ ignore = []
 # Names `continuity` should never cluster as spelling drift, for two genuinely distinct
 # characters it happens to flag as likely variants of each other.
 ignore = []
+
+[model]
+# Settings for the features that use a language model: `--explain`, which adds an editor's note
+# (fix / consider / keep) to each finding, and the `facts`, `voice`, and `scenes` commands.
+# Everything else runs locally and never depends on these. The key is read from this environment variable
+# and never from this file.
+# api_key_env = "ANTHROPIC_API_KEY"
+# model = "claude-opus-5-5"
+# effort = "medium"          # low, medium, high, xhigh, max
+# max_findings = 40          # findings past this are reported without a note
+# timeout_secs = 300

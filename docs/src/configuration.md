@@ -14,5 +14,6 @@ Every setting is optional. Run `bluepencil init` for a commented template.
 | `[tics]` | `words` |
 | `[lexicon]` | `filter`, `hedges`, `cliches`, `stopwords`, `not_adverbs`, `ignore`, `files` |
 | `[check]` | see [Thresholds](thresholds.md) |
+| `[model]` | `model`, `effort`, `api_key_env`, `max_findings`, `timeout_secs`, `fallback`, `base_url`; see [Output](output.md#editors-notes-with-explain), [facts](commands/facts.md), [voice](commands/voice.md), and [scenes](commands/scenes.md) |
 
-Command-line options override config values.
+Command-line options override config values. `bluepencil config` prints the merged result and the file it came from.

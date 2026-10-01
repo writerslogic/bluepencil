@@ -28,6 +28,9 @@ pub struct Global {
     /// Show at most this many rows in ranked lists
     #[arg(long, short = 'n', global = true, default_value_t = 25)]
     pub limit: usize,
+    /// Ask a language model for an editor's note on each finding (needs an API key; see [model] in bluepencil.toml)
+    #[arg(long, global = true)]
+    pub explain: bool,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -107,6 +110,12 @@ pub enum Command {
     Pov(PovArgs),
     /// Pacing profile per section: word count, dialogue ratio, sentence rhythm, style density
     Arc(Input),
+    /// Continuity ledger: facts stated about characters, places, and objects, and where they disagree (uses the model)
+    Facts(FactsArgs),
+    /// Each speaking character's voice, and lines of dialogue that do not sound like them (uses the model)
+    Voice(Input),
+    /// Scene audit: goal, conflict, and change per scene, with a keep/tighten/cut/merge verdict (uses the model)
+    Scenes(Input),
     /// Everything at a glance
     Report(ReportArgs),
     /// Fail when configured thresholds are exceeded (for CI and hooks)
@@ -120,6 +129,8 @@ pub enum Command {
         #[arg(long, value_enum)]
         genre: Option<Genre>,
     },
+    /// Show the effective configuration and which bluepencil.toml it came from
+    Config,
     /// Print shell completions
     Completions { shell: Shell },
     /// Print the JSON Schema for a command's --json output
@@ -135,6 +146,15 @@ pub enum Command {
     Join(JoinArgs),
     /// Word count change per file since a git commit or date
     Progress(ProgressArgs),
+}
+
+#[derive(Args)]
+pub struct FactsArgs {
+    #[command(flatten)]
+    pub input: Input,
+    /// Also print every fact, not only the contradictions
+    #[arg(long)]
+    pub ledger: bool,
 }
 
 #[derive(Args)]

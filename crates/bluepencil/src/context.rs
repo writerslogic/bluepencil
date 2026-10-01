@@ -13,7 +13,9 @@ pub struct Context {
     pub lexicons: Lexicons,
     pub json: bool,
     pub limit: usize,
+    pub explain: bool,
     base: std::path::PathBuf,
+    config_path: Option<std::path::PathBuf>,
     format: Option<InputFormat>,
 }
 
@@ -32,9 +34,18 @@ fn is_docx_path(path: &std::path::Path) -> bool {
 
 impl Context {
     pub fn new(global: &Global) -> Result<Self> {
-        let (config, base) = config::load(global.config.as_deref())?;
+        let config::Loaded { config, base, path } = config::load(global.config.as_deref())?;
         let lexicons = build_lexicons(&config, &base)?;
-        Ok(Self { config, lexicons, json: global.json, limit: global.limit, base, format: global.input_format })
+        Ok(Self {
+            config,
+            lexicons,
+            json: global.json,
+            limit: global.limit,
+            explain: global.explain,
+            base,
+            config_path: path,
+            format: global.input_format,
+        })
     }
 
     pub fn documents(&self, input: &Input) -> Result<Vec<Document>> {
@@ -75,6 +86,10 @@ impl Context {
             docs.push(Document::parse(glob::display(&path), text, format));
         }
         Ok(docs)
+    }
+
+    pub fn config_path(&self) -> Option<&std::path::Path> {
+        self.config_path.as_deref()
     }
 
     pub fn echo_ignore(&self) -> WordSet {

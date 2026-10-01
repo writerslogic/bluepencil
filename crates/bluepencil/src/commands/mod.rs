@@ -4,10 +4,12 @@ mod cast;
 mod check;
 mod cliches;
 mod completions;
+mod config;
 mod continuity;
 mod count;
 mod dialogue;
 mod echoes;
+mod facts;
 mod filter;
 mod freq;
 mod hapax;
@@ -25,6 +27,7 @@ mod readability;
 mod repeats;
 pub mod report;
 mod rhythm;
+mod scenes;
 mod schema;
 mod speakers;
 mod split;
@@ -34,6 +37,7 @@ mod tense;
 mod tics;
 pub mod trend;
 mod unique;
+mod voice;
 mod wdiff;
 
 use anyhow::Result;
@@ -43,6 +47,7 @@ use bluepencil_core::{Document, Finding, Lexicons};
 use crate::cli::{Cli, Command, ListArgs};
 use crate::context::Context;
 use crate::exit::Status;
+use crate::explain;
 use crate::output::{self, human};
 
 pub fn run(cli: Cli) -> Result<Status> {
@@ -53,6 +58,11 @@ pub fn run(cli: Cli) -> Result<Status> {
         _ => {}
     }
     let ctx = Context::new(&cli.global)?;
+    if ctx.explain && !supports_explain(&cli.command) {
+        anyhow::bail!(
+            "--explain is not supported for this command yet (it works with the word-list commands and `echoes`)"
+        );
+    }
     match cli.command {
         Command::Count(a) => count::run(&ctx, &a),
         Command::Outline(a) => outline::run(&ctx, &a),
@@ -85,11 +95,29 @@ pub fn run(cli: Cli) -> Result<Status> {
         Command::Tense(a) => tense::run(&ctx, &a),
         Command::Pov(a) => pov::run(&ctx, &a),
         Command::Arc(a) => arc::run(&ctx, &a),
+        Command::Facts(a) => facts::run(&ctx, &a),
+        Command::Voice(a) => voice::run(&ctx, &a),
+        Command::Scenes(a) => scenes::run(&ctx, &a),
+        Command::Config => config::run(&ctx),
         Command::Report(a) => report::run(&ctx, &a),
         Command::Check(a) => return check::run(&ctx, &a),
         Command::Init { .. } | Command::Completions { .. } | Command::Schema { .. } => unreachable!(),
     }?;
     Ok(Status::Ok)
+}
+
+fn supports_explain(command: &Command) -> bool {
+    matches!(
+        command,
+        Command::Tics(_)
+            | Command::Filter(_)
+            | Command::Hedges(_)
+            | Command::Adverbs(_)
+            | Command::Cliches(_)
+            | Command::Passive(_)
+            | Command::Nominal(_)
+            | Command::Echoes(_)
+    )
 }
 
 type Finder = fn(&Document, &Lexicons) -> Vec<Finding>;
@@ -108,10 +136,23 @@ pub(crate) fn list_command(ctx: &Context, args: &ListArgs, find: Finder, label: 
     let per_doc: Vec<Vec<Finding>> = docs.iter().map(|d| find(d, &ctx.lexicons)).collect();
     let total_words: usize = docs.iter().map(Document::word_count).sum();
     let all: Vec<Finding> = per_doc.iter().flatten().cloned().collect();
+    let items: Vec<(&Document, &Finding)> =
+        docs.iter().zip(&per_doc).flat_map(|(d, fs)| fs.iter().map(move |f| (d, f))).collect();
+    let notes = if ctx.explain && !args.summary {
+        let targets: Vec<_> = items
+            .iter()
+            .map(|(d, f)| explain::Target { doc: d, span: f.span, rule: f.rule, message: &f.message })
+            .collect();
+        explain::annotate(ctx, &targets)?
+    } else {
+        Vec::new()
+    };
 
     if ctx.json {
-        let findings: Vec<_> =
-            docs.iter().zip(&per_doc).flat_map(|(d, fs)| fs.iter().map(|f| output::locate(d, f))).collect();
+        let mut findings: Vec<_> = items.iter().map(|(d, f)| output::locate(d, f)).collect();
+        for (located, note) in findings.iter_mut().zip(notes) {
+            located.note = note;
+        }
         return output::json::print(&ListOutput {
             total: all.len(),
             per_1k_words: bluepencil_core::stats::per_thousand(all.len(), total_words),
@@ -122,9 +163,10 @@ pub(crate) fn list_command(ctx: &Context, args: &ListArgs, find: Finder, label: 
 
     if args.summary {
         human::ranked(&tally(&all), label, ctx.limit, Some(total_words));
-    } else {
-        let items: Vec<_> = docs.iter().zip(&per_doc).flat_map(|(d, fs)| fs.iter().map(move |f| (d, f))).collect();
+    } else if notes.is_empty() {
         human::findings(&items);
+    } else {
+        human::findings_with_notes(&items, &notes);
     }
     println!(
         "\n{} found, {:.1} per 1,000 words",

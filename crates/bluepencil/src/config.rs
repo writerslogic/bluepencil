@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub const FILE_NAME: &str = "bluepencil.toml";
 pub const TEMPLATE: &str = include_str!("../../../bluepencil.example.toml");
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub project: Project,
@@ -19,15 +19,16 @@ pub struct Config {
     pub lexicon: Lexicon,
     pub check: Check,
     pub continuity: Continuity,
+    pub model: Model,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Project {
     pub files: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Echoes {
     pub window: usize,
@@ -42,7 +43,7 @@ impl Default for Echoes {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Repeats {
     pub min: usize,
@@ -56,7 +57,7 @@ impl Default for Repeats {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Rhythm {
     pub run: usize,
@@ -70,7 +71,7 @@ impl Default for Rhythm {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Starters {
     pub run: usize,
@@ -82,7 +83,7 @@ impl Default for Starters {
     }
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Tics {
     pub words: Vec<String>,
@@ -90,14 +91,14 @@ pub struct Tics {
 
 /// Names to exclude from `continuity`'s spelling-drift clustering, for a pair of genuinely
 /// distinct characters it happens to flag as likely variants of each other.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Continuity {
     pub ignore: Vec<String>,
 }
 
 /// Additions to and removals from the built-in word lists.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Lexicon {
     pub stopwords: Vec<String>,
@@ -111,7 +112,41 @@ pub struct Lexicon {
     pub files: std::collections::BTreeMap<String, Vec<PathBuf>>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+/// Settings for the model-backed features: `--explain` and `facts`.
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct Model {
+    /// Model ID sent to the Claude API.
+    pub model: String,
+    /// Reasoning effort: `low`, `medium`, `high`, `xhigh`, or `max`.
+    pub effort: String,
+    /// Environment variable holding the API key.
+    pub api_key_env: String,
+    /// `--explain` sends at most this many findings per run; the rest are reported without notes.
+    pub max_findings: usize,
+    /// Request timeout in seconds.
+    pub timeout_secs: u64,
+    /// Let the API retry on a fallback model when a safety classifier declines the request.
+    pub fallback: bool,
+    /// API endpoint; override for proxies and tests.
+    pub base_url: String,
+}
+
+impl Default for Model {
+    fn default() -> Self {
+        Self {
+            model: "claude-opus-5-5".into(),
+            effort: "medium".into(),
+            api_key_env: "ANTHROPIC_API_KEY".into(),
+            max_findings: 40,
+            timeout_secs: 300,
+            fallback: true,
+            base_url: "https://api.anthropic.com".into(),
+        }
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Check {
     pub max_echoes_per_1k: Option<f64>,
@@ -149,25 +184,41 @@ pub enum Severity {
     Warn,
 }
 
+/// The merged configuration, the directory globs resolve against, and the file it was read
+/// from when there was one.
+pub struct Loaded {
+    pub config: Config,
+    pub base: PathBuf,
+    pub path: Option<PathBuf>,
+}
+
 /// Loads the explicit config or the nearest `bluepencil.toml` above the working directory.
-pub fn load(explicit: Option<&Path>) -> Result<(Config, PathBuf)> {
+pub fn load(explicit: Option<&Path>) -> Result<Loaded> {
     let cwd = std::env::current_dir()?;
     let path = match explicit {
         Some(p) => Some(p.to_path_buf()),
         None => cwd.ancestors().map(|d| d.join(FILE_NAME)).find(|p| p.is_file()),
     };
     let Some(path) = path else {
-        return Ok((Config::default(), cwd));
+        return Ok(Loaded { config: Config::default(), base: cwd, path: None });
     };
     let text = std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
     let config = toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
     let base = path.parent().map_or(cwd, Path::to_path_buf);
-    Ok((config, base))
+    Ok(Loaded { config, base, path: Some(path) })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn effective_config_round_trips_through_toml() {
+        let text = toml::to_string_pretty(&Config::default()).unwrap();
+        let back: Config = toml::from_str(&text).unwrap();
+        assert_eq!(back.echoes.window, Config::default().echoes.window);
+        assert_eq!(back.model.model, Config::default().model.model);
+    }
 
     #[test]
     fn rule_without_an_override_defaults_to_error() {
