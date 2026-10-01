@@ -4,14 +4,14 @@ use crate::cli::Genre;
 use crate::config::{FILE_NAME, TEMPLATE};
 use crate::exit::Status;
 
-/// Curated by hand alongside `examples/<genre>/bluepencil.toml`, which stays the source a
-/// human reads and edits; these are `include_str!`'d copies so `init --genre` writes exactly
-/// what's checked in there rather than a second, driftable copy of the same settings.
+/// The presets live in `templates/` so they ship inside the published crate; the example
+/// projects under `examples/<genre>/` carry byte-identical copies, and `tests/init.rs` fails
+/// if the two drift.
 fn template_for(genre: Genre) -> &'static str {
     match genre {
-        Genre::Novel => include_str!("../../../../examples/novel/bluepencil.toml"),
-        Genre::Essay => include_str!("../../../../examples/essay/bluepencil.toml"),
-        Genre::Screenplay => include_str!("../../../../examples/screenplay/bluepencil.toml"),
+        Genre::Novel => include_str!("../../templates/novel.toml"),
+        Genre::Essay => include_str!("../../templates/essay.toml"),
+        Genre::Screenplay => include_str!("../../templates/screenplay.toml"),
     }
 }
 

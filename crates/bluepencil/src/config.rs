@@ -5,7 +5,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub const FILE_NAME: &str = "bluepencil.toml";
-pub const TEMPLATE: &str = include_str!("../../../bluepencil.example.toml");
+pub const TEMPLATE: &str = include_str!("../templates/config.toml");
 
 #[derive(Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]

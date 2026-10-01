@@ -16,6 +16,7 @@ just demo     # run the report on the sample novel
 - `crates/bluepencil-core` holds parsing, tokenizing, sentence splitting, statistics, and every analysis. It has no I/O.
 - `crates/bluepencil` is the CLI: argument parsing, config, file loading, and output.
 - `crates/bluepencil-core/data` holds the bundled word lists, embedded at compile time.
+- `crates/bluepencil/templates` holds the `init` templates. The genre presets are mirrored in `examples/<genre>/bluepencil.toml`; a test keeps the two identical.
 
 ## Adding a command
 

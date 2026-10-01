@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- The `init` templates now live inside the `bluepencil` crate, so `cargo install bluepencil` builds from the crates.io package. The crates.io 0.1.0 release carries this fix and is otherwise identical to the tagged release.
+
 ## [0.1.0] - 2026-10-01
 
 ### Added
