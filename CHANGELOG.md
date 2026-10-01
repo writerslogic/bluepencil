@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- `bluepencil-node`: native Node.js bindings for `bluepencil-core`, published to npm as `bluepencil` (`checkStyle`, `findEchoes`, `findRepeats`, `analyzeRhythm`, `sentenceStarters`, `analyzeDialogue`, `sectionArc`, `report`).
+
 ### Fixed
 
 - The `init` templates now live inside the `bluepencil` crate, so `cargo install bluepencil` builds from the crates.io package. The crates.io 0.1.0 release carries this fix and is otherwise identical to the tagged release.
