@@ -19,3 +19,5 @@ targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-da
 install-path = "CARGO_HOME"
 # Whether to install an updater program
 install-updater = false
+# release.yml is hand-maintained to pin every action to a commit SHA; do not regenerate it
+allow-dirty = ["ci"]
