@@ -6,5 +6,6 @@ src/**
 tsconfig.json
 **/*.map
 **/*.ts
-node_modules/**
+node_modules/@types/**
+node_modules/typescript/**
 **/tsconfig.tsbuildinfo
