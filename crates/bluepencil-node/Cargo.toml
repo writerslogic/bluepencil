@@ -1,0 +1,23 @@
+[package]
+name = "bluepencil-node"
+description = "Node.js bindings (napi-rs) for bluepencil-core, published to npm as `bluepencil`"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+# Distributed through npm as prebuilt per-platform packages, never through crates.io.
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+bluepencil-core.workspace = true
+napi = { version = "3.12", default-features = false, features = ["napi4"] }
+napi-derive = "3.5"
+
+[build-dependencies]
+napi-build = "2.2"

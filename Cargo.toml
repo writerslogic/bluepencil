@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/bluepencil", "crates/bluepencil-core", "crates/bluepencil-lsp"]
+members = ["crates/bluepencil", "crates/bluepencil-core", "crates/bluepencil-lsp", "crates/bluepencil-node"]
 exclude = ["xtask", "fuzz"]
 
 [workspace.package]
