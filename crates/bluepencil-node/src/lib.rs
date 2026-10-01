@@ -1,5 +1,5 @@
 //! Node.js bindings for `bluepencil-core`, built with napi-rs and published to
-//! npm as `bluepencil`.
+//! npm as `bluepencil-node`.
 //!
 //! Every function takes the prose as a string (not a path) plus an optional
 //! options object, parses it once, and returns plain objects whose locations

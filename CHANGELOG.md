@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
-- `bluepencil-node`: native Node.js bindings for `bluepencil-core`, published to npm as `bluepencil` (`checkStyle`, `findEchoes`, `findRepeats`, `analyzeRhythm`, `sentenceStarters`, `analyzeDialogue`, `sectionArc`, `report`).
+- `bluepencil-node`: native Node.js bindings for `bluepencil-core`, published to npm as `bluepencil-node` (`checkStyle`, `findEchoes`, `findRepeats`, `analyzeRhythm`, `sentenceStarters`, `analyzeDialogue`, `sectionArc`, `report`).
 
 ### Fixed
 

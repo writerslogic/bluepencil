@@ -2,7 +2,7 @@ name: Release Node package
 
 # Manual only. Cross-compiles the napi addon in crates/bluepencil-node for
 # every target package.json's `napi.targets` declares, then publishes the
-# per-platform packages and the root `bluepencil` npm package. Needs an
+# per-platform packages and the root `bluepencil-node` npm package. Needs an
 # NPM_TOKEN secret with publish rights; without it the build matrix still
 # runs and uploads artifacts, only the publish job fails.
 on:
@@ -78,8 +78,9 @@ jobs:
         run: npx napi create-npm-dirs
       - name: Move artifacts into place
         run: npx napi artifacts --output-dir artifacts
-      # `npm publish` runs prepublishOnly (`napi prepublish -t npm`), which
-      # publishes every platform package, then npm publishes the root.
+      # `npm publish` runs prepublishOnly (`napi prepublish -t npm --no-gh-release`),
+      # which publishes every platform package, then npm publishes the root. The
+      # GitHub release is dist's job (release.yml), so napi must not touch it.
       - name: Publish
         run: |
           npm config set provenance true

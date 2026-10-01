@@ -1,6 +1,6 @@
 [package]
 name = "bluepencil-node"
-description = "Node.js bindings (napi-rs) for bluepencil-core, published to npm as `bluepencil`"
+description = "Node.js bindings (napi-rs) for bluepencil-core, published to npm as `bluepencil-node`"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
