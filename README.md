@@ -218,6 +218,8 @@ The commercial tools in this space are cloud suites with a GUI: your manuscript 
 
 Contributions of all sizes are welcome. Check the [issue tracker](https://github.com/writerslogic/bluepencil/issues) or see [CONTRIBUTING.md](CONTRIBUTING.md) for setup and conventions.
 
+Maintainers can follow the [release process](RELEASING.md) for GitHub, Homebrew, crates.io, and VS Code.
+
 **Areas where help is especially welcome:**
 - Word lists and sentence-splitting rules for languages other than English
 - Real-manuscript false positives for `tense`, `pov`, `speakers`, and `continuity`
