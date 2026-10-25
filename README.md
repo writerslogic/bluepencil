@@ -46,7 +46,7 @@ cargo install bluepencil
 
 From Node.js, `npm install bluepencil-node` gives you the same engine as native bindings; see [crates/bluepencil-node](crates/bluepencil-node/).
 
-Prebuilt binaries for macOS, Linux, and Windows are on the [releases page](https://github.com/writerslogic/bluepencil/releases), with shell and PowerShell installers. Download the [VS Code extension](editors/vscode/) VSIX from the same release; it bundles the analysis engine for live inline findings with no separate binary. An external language server (`bluepencil-lsp`) is optional. See [Editors](https://writerslogic.github.io/bluepencil/docs/editors.html).
+Prebuilt binaries for macOS, Linux, and Windows are on the [releases page](https://github.com/writerslogic/bluepencil/releases), with shell and PowerShell installers. Download the [VS Code extension VSIX](https://github.com/writerslogic/bluepencil/releases/download/vscode-extension-2026-10-25/bluepencil-0.2.0.vsix); it bundles the analysis engine for live inline findings with no separate binary. An external language server (`bluepencil-lsp`) is optional. See [Editors](https://writerslogic.github.io/bluepencil/docs/editors.html).
 
 ## Quick start
 
