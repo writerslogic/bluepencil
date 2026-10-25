@@ -263,10 +263,13 @@ fn ulyz(bytes: &[u8]) -> Result<String> {
     let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).context("not a valid Ulysses .ulyz archive")?;
     for index in 0..archive.len() {
         let entry = archive.by_index(index).context("reading Ulysses archive")?;
-        if ["Content.xml", "Contents.xml"]
-            .iter()
-            .any(|name| entry.name() == *name || entry.name().ends_with(&format!("/{name}")))
-        {
+        let is_sheet = {
+            let entry_name = entry.name().context("reading Ulysses archive entry name")?;
+            ["Content.xml", "Contents.xml"]
+                .iter()
+                .any(|name| entry_name == *name || entry_name.ends_with(&format!("/{name}")))
+        };
+        if is_sheet {
             let mut xml = Vec::new();
             entry.take((MAX_XML_BYTES + 1) as u64).read_to_end(&mut xml).context("reading Ulysses sheet")?;
             if xml.len() > MAX_XML_BYTES {

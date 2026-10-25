@@ -3,7 +3,7 @@ use std::process::Command;
 #[test]
 fn report_points_to_revisable_passages_and_escapes_html() {
     let dir = tempfile::tempdir().unwrap();
-    let name = "draft<script>.md";
+    let name = "draft&notes.md";
     std::fs::write(dir.path().join(name), "The gravel was cold. The gravel was wet.\n").unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
         .current_dir(dir.path())
@@ -17,8 +17,8 @@ fn report_points_to_revisable_passages_and_escapes_html() {
     assert_eq!(revision["line"], 1);
     assert!(revision["excerpt"].as_str().unwrap().contains("gravel"));
     let html = std::fs::read_to_string(dir.path().join("report.html")).unwrap();
-    assert!(html.contains("draft&lt;script&gt;.md"));
-    assert!(!html.contains("draft<script>.md"));
+    assert!(html.contains("draft&amp;notes.md"));
+    assert!(!html.contains("draft&notes.md"));
 }
 
 #[test]
