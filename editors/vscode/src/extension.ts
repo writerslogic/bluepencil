@@ -1,5 +1,6 @@
 import * as cp from "node:child_process";
 import * as vscode from "vscode";
+import { analyze_full } from "../engine/bluepencil_web";
 import {
     CloseAction,
     ErrorAction,
@@ -11,12 +12,27 @@ import {
 } from "vscode-languageclient/node";
 
 const SUPPORTED_LANGUAGES = ["markdown", "fountain"];
-const SUPPORTED_EXTENSIONS = [".md", ".markdown", ".fountain"];
+const SUPPORTED_EXTENSIONS = [".md", ".markdown", ".mdown", ".mkd", ".mdx", ".fountain", ".spmd", ".txt"];
 
 let client: LanguageClient | undefined;
 let output: vscode.OutputChannel;
 let diagnostics: vscode.DiagnosticCollection;
 let lspUnavailableWarned = false;
+const pending = new Map<string, NodeJS.Timeout>();
+
+interface BundledFinding {
+    rule: string;
+    message: string;
+    start: number;
+    end: number;
+}
+
+interface BundledAnalysis {
+    words: number;
+    sentences: number;
+    findings: BundledFinding[];
+    truncated: boolean;
+}
 
 /** bluepencil's `list_command` JSON shape: { total, per_1k_words, summary, findings }. */
 interface LocatedFinding {
@@ -51,18 +67,40 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((doc) => {
             if (isSupportedDocument(doc) && !isLspRunning()) {
-                void runCliCheck(doc);
+                void runCheck(doc);
             }
         }),
     );
 
+    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(({ document }) => {
+        if (!isSupportedDocument(document) || isLspRunning()) return;
+        const key = document.uri.toString();
+        const previous = pending.get(key);
+        if (previous) clearTimeout(previous);
+        pending.set(key, setTimeout(() => {
+            pending.delete(key);
+            void runCheck(document);
+        }, 500));
+    }));
+
+    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument((doc) => {
+        if (isSupportedDocument(doc) && !isLspRunning()) void runCheck(doc);
+    }));
+
     context.subscriptions.push(
         vscode.workspace.onDidCloseTextDocument((doc) => {
             diagnostics.delete(doc.uri);
+            const key = doc.uri.toString();
+            const timer = pending.get(key);
+            if (timer) clearTimeout(timer);
+            pending.delete(key);
         }),
     );
 
     void startLanguageClient(context);
+    for (const doc of vscode.workspace.textDocuments) {
+        if (isSupportedDocument(doc)) void runCheck(doc);
+    }
 }
 
 export async function deactivate(): Promise<void> {
@@ -70,6 +108,8 @@ export async function deactivate(): Promise<void> {
         await client.stop();
         client = undefined;
     }
+    for (const timer of pending.values()) clearTimeout(timer);
+    pending.clear();
 }
 
 function isLspRunning(): boolean {
@@ -80,14 +120,14 @@ function isSupportedDocument(doc: vscode.TextDocument): boolean {
     if (SUPPORTED_LANGUAGES.includes(doc.languageId)) {
         return true;
     }
+    if (doc.uri.scheme === "untitled" && doc.languageId === "plaintext") return true;
     const fsPath = doc.uri.fsPath.toLowerCase();
     return SUPPORTED_EXTENSIONS.some((ext) => fsPath.endsWith(ext));
 }
 
 async function startLanguageClient(context: vscode.ExtensionContext): Promise<void> {
     const config = vscode.workspace.getConfiguration("bluepencil");
-    if (!config.get<boolean>("lsp.enable", true)) {
-        output.appendLine("bluepencil.lsp.enable is false; using CLI fallback only.");
+    if (!config.get<boolean>("lsp.enable", false)) {
         return;
     }
 
@@ -126,10 +166,10 @@ async function startLanguageClient(context: vscode.ExtensionContext): Promise<vo
         if (!lspUnavailableWarned) {
             lspUnavailableWarned = true;
             output.appendLine(
-                `bluepencil-lsp not found or failed to launch (looked for "${serverPath}"); falling back to CLI-based checks on save.`,
+                `bluepencil-lsp not found or failed to launch (looked for "${serverPath}"); using the bundled analysis engine.`,
             );
             void vscode.window.setStatusBarMessage(
-                "bluepencil: language server not found, using CLI checks on save",
+                "bluepencil: using bundled analysis",
                 8000,
             );
         }
@@ -152,14 +192,51 @@ async function runCliCheckOnActiveEditor(): Promise<void> {
         void vscode.window.showWarningMessage("bluepencil: no active editor.");
         return;
     }
-    await runCliCheck(editor.document);
+    await runCheck(editor.document);
+}
+
+function inputFormat(doc: vscode.TextDocument): string {
+    const path = doc.uri.fsPath.toLowerCase();
+    if (doc.languageId === "fountain" || path.endsWith(".fountain") || path.endsWith(".spmd")) return "fountain";
+    if (path.endsWith(".txt") || doc.languageId === "plaintext") return "plain";
+    return "markdown";
+}
+
+function bundledAnalysis(doc: vscode.TextDocument): BundledAnalysis {
+    return JSON.parse(analyze_full(doc.getText(), inputFormat(doc))) as BundledAnalysis;
+}
+
+function runBundledCheck(doc: vscode.TextDocument): void {
+    try {
+        const analysis = bundledAnalysis(doc);
+        diagnostics.set(doc.uri, analysis.findings.map((finding) => {
+            const diagnostic = new vscode.Diagnostic(
+                new vscode.Range(doc.positionAt(finding.start), doc.positionAt(finding.end)),
+                finding.message,
+                vscode.DiagnosticSeverity.Information,
+            );
+            diagnostic.source = "bluepencil";
+            diagnostic.code = finding.rule;
+            return diagnostic;
+        }));
+        if (analysis.truncated) output.appendLine(`${doc.uri.fsPath}: showing the first 150 observations.`);
+    } catch (error) {
+        diagnostics.delete(doc.uri);
+        output.appendLine(`bluepencil could not analyze ${doc.uri.fsPath}: ${errorMessage(error)}`);
+    }
+}
+
+async function runCheck(doc: vscode.TextDocument): Promise<void> {
+    if (!isSupportedDocument(doc)) return;
+    if (doc.uri.scheme === "file" && vscode.workspace.getConfiguration("bluepencil", doc.uri).get<boolean>("cli.enable", false)) {
+        await runCliCheck(doc);
+    } else {
+        runBundledCheck(doc);
+    }
 }
 
 async function runCliCheck(doc: vscode.TextDocument): Promise<void> {
     const config = vscode.workspace.getConfiguration("bluepencil", doc.uri);
-    if (!config.get<boolean>("cli.enable", true)) {
-        return;
-    }
     if (doc.uri.scheme !== "file") {
         return;
     }
@@ -183,7 +260,7 @@ async function runCliCheck(doc: vscode.TextDocument): Promise<void> {
             const findings = await runListCommand(cliPath, command, doc.uri.fsPath);
             anySucceeded = true;
             for (const finding of findings) {
-                allDiagnostics.push(toDiagnostic(finding, command));
+                allDiagnostics.push(toDiagnostic(doc, finding, command));
             }
         } catch (err) {
             lastError = errorMessage(err);
@@ -203,16 +280,14 @@ async function runCliCheck(doc: vscode.TextDocument): Promise<void> {
     diagnostics.set(doc.uri, allDiagnostics);
 }
 
-/**
- * `Located.line`/`.column` from `crates/bluepencil-core/src/location.rs` are documented
- * one-based ("One-based line and column"); VS Code's `Position` is zero-based. Subtract 1
- * on both axes. Columns count characters (not bytes/UTF-16 code units), which matches
- * VS Code's character-indexed Position for all-BMP text; astral characters could disagree,
- * an accepted gap for v1.
- */
-function toDiagnostic(finding: LocatedFinding, command: string): vscode.Diagnostic {
-    const start = new vscode.Position(Math.max(0, finding.line - 1), Math.max(0, finding.column - 1));
-    const end = new vscode.Position(Math.max(0, finding.end_line - 1), Math.max(0, finding.end_column - 1));
+function toDiagnostic(doc: vscode.TextDocument, finding: LocatedFinding, command: string): vscode.Diagnostic {
+    const position = (line: number, column: number): vscode.Position => {
+        const lineIndex = Math.min(Math.max(0, line - 1), doc.lineCount - 1);
+        const prefix = [...doc.lineAt(lineIndex).text].slice(0, Math.max(0, column - 1)).join("");
+        return new vscode.Position(lineIndex, prefix.length);
+    };
+    const start = position(finding.line, finding.column);
+    const end = position(finding.end_line, finding.end_column);
     const range = start.isBeforeOrEqual(end) ? new vscode.Range(start, end) : new vscode.Range(start, start);
     const diagnostic = new vscode.Diagnostic(range, finding.message, vscode.DiagnosticSeverity.Information);
     diagnostic.source = `bluepencil (${command})`;
@@ -249,6 +324,24 @@ async function runReportCommand(): Promise<void> {
         return;
     }
     const config = vscode.workspace.getConfiguration("bluepencil", editor.document.uri);
+    if (!config.get<boolean>("cli.enable", false)) {
+        try {
+            const analysis = bundledAnalysis(editor.document);
+            output.clear();
+            output.appendLine(`bluepencil · ${editor.document.uri.fsPath}`);
+            output.appendLine(`${analysis.words} words · ${analysis.sentences} sentences · ${analysis.findings.length} observations`);
+            output.appendLine("");
+            for (const finding of analysis.findings.slice(0, 25)) {
+                const pos = editor.document.positionAt(finding.start);
+                output.appendLine(`${pos.line + 1}:${pos.character + 1}  ${finding.rule}  ${finding.message}`);
+            }
+            if (analysis.truncated) output.appendLine("Showing the first 150 observations; use the CLI for the complete manuscript.");
+            output.show(true);
+        } catch (error) {
+            void vscode.window.showErrorMessage(`bluepencil report failed: ${errorMessage(error)}`);
+        }
+        return;
+    }
     const cliPath = config.get<string>("cli.path", "bluepencil");
     const filePath = editor.document.uri.fsPath;
 

@@ -1,5 +1,7 @@
-# Introduction
+# Find the lines worth revising
 
-bluepencil is a command-line toolkit that measures prose. It will not tell you whether a paragraph is good. It will tell you where to look: a word that echoes three lines later, five sentences in a row that open with "She", a chapter that is twice as long as its neighbors, a scene with no dialogue at all.
+bluepencil is a local prose linter for fiction and long-form writing. It finds repeated words, distracting sentence patterns, style flags, and pacing changes, then points to the passage so you can decide what to keep.
 
-It is built for novelists, screenwriters, essayists, and anyone who revises in plain text.
+**[Try a passage in your browser](../)** — no account, upload, or installation. The analysis runs locally in WebAssembly.
+
+For a full manuscript, [install the CLI](installation.md), open the [quick start](quickstart.md), or read the [input formats](formats.md). The deterministic commands run offline. Optional model-backed commands send text to the provider you configure when explicitly invoked.

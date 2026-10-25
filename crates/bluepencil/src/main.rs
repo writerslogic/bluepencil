@@ -8,6 +8,7 @@ mod explain;
 mod gitdiff;
 mod glob;
 mod llm;
+mod native;
 mod output;
 
 use std::process::ExitCode;

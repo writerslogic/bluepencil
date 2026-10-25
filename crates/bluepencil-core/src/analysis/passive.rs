@@ -4,6 +4,18 @@ use crate::lexicon::Lexicons;
 use crate::span::Span;
 
 const BE_VERBS: &[&str] = &["am", "is", "are", "was", "were", "be", "being", "been"];
+const ADJECTIVAL_PARTICIPLES: &[&str] = &[
+    "bored",
+    "concerned",
+    "confused",
+    "excited",
+    "exhausted",
+    "interested",
+    "pleased",
+    "satisfied",
+    "tired",
+    "worried",
+];
 
 /// A past participle by regular `-ed` inflection, filtered for the common false
 /// positives that end in `-ed` but are not verbs in this position (`bed`, `red`,
@@ -18,9 +30,8 @@ fn is_participle(word: &str, lex: &Lexicons) -> bool {
 
 /// `be`-verb followed by a past participle, with at most one intervening adverb
 /// (`was quickly forgotten`), the standard heuristic passive-voice construction.
-/// No POS tagger: a `be`-verb followed by an unrelated `-ed`/irregular-participle
-/// word (as an adjective, e.g. "was tired") reads as a false positive here, same
-/// tradeoff every heuristic passive detector (write-good, Hemingway) makes.
+/// Common participles used as state adjectives are skipped unless a `by` clause
+/// follows; the remaining ambiguity needs a part-of-speech tagger to resolve.
 pub fn find(doc: &Document, lex: &Lexicons) -> Vec<Finding> {
     let mut findings = Vec::new();
     for sentence in doc.sentences() {
@@ -36,6 +47,12 @@ pub fn find(doc: &Document, lex: &Lexicons) -> Vec<Finding> {
                 j += 1;
             }
             if j < words.len() && is_participle(&words[j].lower, lex) {
+                if ADJECTIVAL_PARTICIPLES.contains(&words[j].lower.as_str())
+                    && words.get(j + 1).is_none_or(|word| word.lower != "by")
+                {
+                    i += 1;
+                    continue;
+                }
                 let mut end = j;
                 if end + 1 < words.len() && words[end + 1].lower == "by" {
                     end += 1;

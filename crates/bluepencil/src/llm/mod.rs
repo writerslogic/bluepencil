@@ -1,19 +1,72 @@
 //! The model-backed layer. Everything here is opt-in, leaves the machine, and is
 //! non-deterministic; the analyses in `bluepencil-core` never depend on it.
 
+pub mod chat;
 pub mod claude;
 
-use anyhow::{Result, bail};
+use anyhow::{Context as _, Result, bail};
 use bluepencil_core::Document;
 
+use crate::config::ModelProvider;
 use crate::context::Context;
 
 /// Rough upper bound on prompt size, in characters, before a request is refused outright.
 /// About 3.5 characters per token leaves room under a 1M-token context for the reply.
 const MAX_PROMPT_CHARS: usize = 3_000_000;
 
-pub fn client(ctx: &Context) -> Result<claude::Claude> {
-    claude::Claude::from_config(&ctx.config.model)
+fn validate_base_url(base_url: &str) -> Result<String> {
+    let parsed = url::Url::parse(base_url).context("model.base_url must be an absolute URL")?;
+    let loopback = match parsed.host() {
+        Some(url::Host::Domain("localhost")) => true,
+        Some(url::Host::Ipv4(address)) => address.is_loopback(),
+        Some(url::Host::Ipv6(address)) => address.is_loopback(),
+        _ => false,
+    };
+    if parsed.scheme() != "https" && !(parsed.scheme() == "http" && loopback) {
+        bail!("model.base_url must use HTTPS or an HTTP loopback address");
+    }
+    if !parsed.username().is_empty()
+        || parsed.password().is_some()
+        || parsed.query().is_some()
+        || parsed.fragment().is_some()
+    {
+        bail!("model.base_url cannot contain credentials, a query, or a fragment");
+    }
+    Ok(parsed.as_str().trim_end_matches('/').to_string())
+}
+
+pub enum Client {
+    Anthropic(claude::Claude),
+    Chat(chat::Chat),
+}
+
+impl Client {
+    pub fn model(&self) -> &str {
+        match self {
+            Self::Anthropic(client) => client.model(),
+            Self::Chat(client) => client.model(),
+        }
+    }
+
+    pub fn complete_json(
+        &self,
+        system: &str,
+        user: &str,
+        schema: &serde_json::Value,
+        max_tokens: u32,
+    ) -> Result<serde_json::Value> {
+        match self {
+            Self::Anthropic(client) => client.complete_json(system, user, schema, max_tokens),
+            Self::Chat(client) => client.complete_json(system, user, schema, max_tokens),
+        }
+    }
+}
+
+pub fn client(ctx: &Context) -> Result<Client> {
+    match ctx.config.model.provider {
+        ModelProvider::Anthropic => Ok(Client::Anthropic(claude::Claude::from_config(&ctx.config.model)?)),
+        _ => Ok(Client::Chat(chat::Chat::from_config(&ctx.config.model)?)),
+    }
 }
 
 /// Every document as `file:line| text`, so the model can cite a line we can check.

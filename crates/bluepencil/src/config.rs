@@ -112,13 +112,24 @@ pub struct Lexicon {
     pub files: std::collections::BTreeMap<String, Vec<PathBuf>>,
 }
 
-/// Settings for the model-backed features: `--explain` and `facts`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ModelProvider {
+    #[default]
+    Anthropic,
+    Openai,
+    Openrouter,
+    Compatible,
+}
+
+/// Settings for the model-backed features: `--explain`, `facts`, `voice`, and `scenes`.
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct Model {
-    /// Model ID sent to the Claude API.
+    pub provider: ModelProvider,
+    /// Model ID sent to the selected provider.
     pub model: String,
-    /// Reasoning effort: `low`, `medium`, `high`, `xhigh`, or `max`.
+    /// Anthropic reasoning effort: `low`, `medium`, `high`, `xhigh`, or `max`.
     pub effort: String,
     /// Environment variable holding the API key.
     pub api_key_env: String,
@@ -126,7 +137,7 @@ pub struct Model {
     pub max_findings: usize,
     /// Request timeout in seconds.
     pub timeout_secs: u64,
-    /// Let the API retry on a fallback model when a safety classifier declines the request.
+    /// Let Anthropic retry on a fallback model when a safety classifier declines the request.
     pub fallback: bool,
     /// API endpoint; override for proxies and tests.
     pub base_url: String,
@@ -135,13 +146,14 @@ pub struct Model {
 impl Default for Model {
     fn default() -> Self {
         Self {
-            model: "claude-opus-5-5".into(),
+            provider: ModelProvider::Anthropic,
+            model: String::new(),
             effort: "medium".into(),
-            api_key_env: "ANTHROPIC_API_KEY".into(),
+            api_key_env: String::new(),
             max_findings: 40,
             timeout_secs: 300,
             fallback: true,
-            base_url: "https://api.anthropic.com".into(),
+            base_url: String::new(),
         }
     }
 }

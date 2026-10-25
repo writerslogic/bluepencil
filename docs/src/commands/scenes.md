@@ -27,4 +27,4 @@ Each scene's start is a quote of its opening words, pinned to its real `file:lin
 
 Add `--json` for machine-readable output.
 
-This command sends the manuscript to the Claude API and needs an API key; see `[model]` in [Configuration](../configuration.md).
+This command sends the manuscript to the configured model provider; see `[model]` in [Configuration](../configuration.md).

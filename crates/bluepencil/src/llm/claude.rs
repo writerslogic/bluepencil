@@ -27,10 +27,11 @@ pub struct Claude {
 impl Claude {
     /// Builds a client from the `[model]` config, reading the key from its environment variable.
     pub fn from_config(cfg: &config::Model) -> Result<Self> {
-        let api_key = match std::env::var(&cfg.api_key_env) {
+        let key_env = if cfg.api_key_env.is_empty() { "ANTHROPIC_API_KEY" } else { &cfg.api_key_env };
+        let api_key = match std::env::var(key_env) {
             Ok(k) if !k.trim().is_empty() => k,
             _ => {
-                bail!("this needs an API key: set {} (or point model.api_key_env at another variable)", cfg.api_key_env)
+                bail!("this needs an API key: set {key_env} (or point model.api_key_env at another variable)")
             }
         };
         let agent = ureq::Agent::config_builder()
@@ -38,11 +39,12 @@ impl Claude {
             .timeout_global(Some(Duration::from_secs(cfg.timeout_secs)))
             .build()
             .into();
+        let base_url = if cfg.base_url.is_empty() { "https://api.anthropic.com" } else { &cfg.base_url };
         Ok(Self {
-            model: cfg.model.clone(),
+            model: if cfg.model.is_empty() { "claude-opus-5-5".into() } else { cfg.model.clone() },
             effort: cfg.effort.clone(),
             api_key,
-            base_url: cfg.base_url.trim_end_matches('/').to_string(),
+            base_url: super::validate_base_url(base_url)?,
             fallback: cfg.fallback,
             agent,
         })

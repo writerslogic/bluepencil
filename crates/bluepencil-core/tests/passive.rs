@@ -31,3 +31,9 @@ fn active_voice_has_no_findings() {
 fn be_verb_alone_is_not_flagged() {
     assert!(find("I am happy. They were here.").is_empty());
 }
+
+#[test]
+fn adjectival_state_is_not_passive_but_by_clause_is() {
+    assert!(find("Mara was tired after the journey.").is_empty());
+    assert_eq!(find("Mara was tired by the journey."), ["was tired by"]);
+}

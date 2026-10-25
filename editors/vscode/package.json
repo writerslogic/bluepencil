@@ -2,8 +2,24 @@
   "name": "bluepencil",
   "displayName": "bluepencil",
   "description": "Prose analysis for writers: echoes, repeats, rhythm, dialogue, readability, and more",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "writerslogic",
+  "icon": "icon.png",
+  "homepage": "https://writerslogic.github.io/bluepencil/",
+  "bugs": "https://github.com/writerslogic/bluepencil/issues",
+  "galleryBanner": {
+    "color": "#101923",
+    "theme": "dark"
+  },
+  "keywords": [
+    "writing",
+    "prose",
+    "fiction",
+    "novel",
+    "screenplay",
+    "style",
+    "editing"
+  ],
   "license": "MIT OR Apache-2.0",
   "repository": {
     "type": "git",
@@ -20,6 +36,7 @@
   "activationEvents": [
     "onLanguage:markdown",
     "onLanguage:fountain",
+    "onLanguage:plaintext",
     "onStartupFinished"
   ],
   "contributes": {
@@ -56,8 +73,8 @@
       "properties": {
         "bluepencil.lsp.enable": {
           "type": "boolean",
-          "default": true,
-          "description": "Try to launch the bluepencil-lsp language server for live inline diagnostics. Falls back to CLI-based checks on save if the server is unavailable."
+          "default": false,
+          "description": "Use an external bluepencil-lsp language server instead of the bundled live analysis engine."
         },
         "bluepencil.lsp.path": {
           "type": "string",
@@ -71,8 +88,8 @@
         },
         "bluepencil.cli.enable": {
           "type": "boolean",
-          "default": true,
-          "description": "Run CLI-based checks on save (used when the language server is disabled or unavailable)."
+          "default": false,
+          "description": "Use an installed bluepencil CLI for checks and full reports instead of the bundled engine."
         },
         "bluepencil.cli.commands": {
           "type": "array",
@@ -93,7 +110,8 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run build:engine && npm run compile",
+    "build:engine": "wasm-pack build ../../crates/bluepencil-web --release --target nodejs --out-dir ../../editors/vscode/engine",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./"
   },
@@ -103,6 +121,7 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "4.0.0",
     "typescript": "^5.4.0"
   }
 }

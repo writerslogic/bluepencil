@@ -8,6 +8,8 @@
 - [Quick start](quickstart.md)
 - [Configuration](configuration.md)
 - [Input formats](formats.md)
+- [A first revision pass](demo.md)
+- [Quality and limits](quality.md)
 - [Output](output.md)
 - [Thresholds and CI](thresholds.md)
 - [Continuous integration](ci.md)

@@ -2,32 +2,37 @@
 
 <img align="left" width="96" src="assets/logo.png" alt="bluepencil logo">
 
-Prose analysis for writers: echoes, repeats, rhythm, dialogue, readability, and more.
+**Find the lines worth revising in your manuscript.**
 
 <br clear="left">
 
 [![CI](https://img.shields.io/github/actions/workflow/status/writerslogic/bluepencil/ci.yml?branch=main&label=CI)](https://github.com/writerslogic/bluepencil/actions/workflows/ci.yml) [![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/writerslogic/bluepencil)](https://securityscorecards.dev/viewer/?uri=github.com/writerslogic/bluepencil) [![crates.io](https://img.shields.io/crates/v/bluepencil.svg)](https://crates.io/crates/bluepencil) [![License](https://img.shields.io/crates/l/bluepencil.svg)](#license)
 
 <p align="center">
+  <a href="https://writerslogic.github.io/bluepencil/"><strong>Try it in your browser</strong></a> &middot;
   <a href="#install">Install</a> &middot;
   <a href="#quick-start">Quick start</a> &middot;
   <a href="#what-it-measures">What it measures</a> &middot;
   <a href="#what-it-reads">What it reads</a> &middot;
   <a href="#in-your-workflow">In your workflow</a> &middot;
-  <a href="https://writerslogic.github.io/bluepencil/">Guide</a> &middot;
+  <a href="https://writerslogic.github.io/bluepencil/docs/introduction.html">Guide</a> &middot;
   <a href="#contributing">Contributing</a>
 </p>
 
 ---
 
-bluepencil measures prose. It will not tell you whether a paragraph is good. It tells you where to look: a word that echoes eight words later, five sentences in a row that open with "She", a chapter twice as long as its neighbours, a scene with no dialogue in it, a passage that slips from past tense into present. Every result is a `file:line:column` your editor can jump to, every command has a `--json` form, and all of it runs locally in one binary with no account and no network.
+bluepencil is a local prose linter for fiction and long-form writing. It finds specific lines to reconsider: a word that echoes eight words later, five sentences in a row that open with "She", or a passage that slips from past tense into present. Its deterministic analyses need no account or network connection; optional model-backed commands send text to the provider you configure only when you invoke them.
+
+[![The bluepencil playground shows a manuscript beside focused, line-specific findings.](assets/playground.png)](https://writerslogic.github.io/bluepencil/)
+
+[Try the live playground](https://writerslogic.github.io/bluepencil/) — paste a passage, open a text file, or switch between fiction and screenplay samples. Analysis runs in your browser.
 
 Twenty-seven analyses are deterministic and instant. Three more, and an `--explain` flag, hand the measured evidence to a language model for the judgments a word list cannot make: whether a character still sounds like themselves in chapter nine, whether the eye colour established in chapter one survives to the end, whether a scene earns its length. Those are opt-in and clearly marked; nothing else depends on them.
 
 > **You give it:** a folder of chapters in Markdown.
 > **It gives you back:** 11.6 hedges per thousand words with each one located, "gravel" repeated four words apart on line 18, three chapters that open on the same word, a Flesch-Kincaid grade per section, and an exit code your CI can gate on.
 
-It understands Markdown, Fountain screenplays, plain text, and Word (`.docx`), handles curly quotes and abbreviations correctly, and treats dialogue as dialogue.
+It understands Markdown, Fountain screenplays, plain text, Word (`.docx`), and native Scrivener 3, Final Draft, Ulysses, and Tinderbox files. It can open Pages files on macOS when Pages is installed. It handles curly quotes and abbreviations correctly, and treats dialogue as dialogue.
 
 ## Install
 
@@ -41,7 +46,7 @@ cargo install bluepencil
 
 From Node.js, `npm install bluepencil-node` gives you the same engine as native bindings; see [crates/bluepencil-node](crates/bluepencil-node/).
 
-Prebuilt binaries for macOS, Linux, and Windows are on the [releases page](https://github.com/writerslogic/bluepencil/releases), with shell and PowerShell installers. A [VS Code extension](editors/vscode/) and a language server (`bluepencil-lsp`) show findings inline; build the extension into a `.vsix` with `npx @vscode/vsce package` in `editors/vscode` and install it with `code --install-extension`. See [Editors](https://writerslogic.github.io/bluepencil/editors.html).
+Prebuilt binaries for macOS, Linux, and Windows are on the [releases page](https://github.com/writerslogic/bluepencil/releases), with shell and PowerShell installers. Download the [VS Code extension](editors/vscode/) VSIX from the same release; it bundles the analysis engine for live inline findings with no separate binary. An external language server (`bluepencil-lsp`) is optional. See [Editors](https://writerslogic.github.io/bluepencil/docs/editors.html).
 
 ## Quick start
 
@@ -134,7 +139,7 @@ Pass files or globs, pipe text with `-`, or set `project.files` in `bluepencil.t
 | `scenes` | Scene audit: goal, conflict, and change per scene, with a keep, tighten, cut, or merge verdict |
 | `--explain` | On any word-list command or `echoes`: a fix, consider, or keep verdict and a one-line note per finding |
 
-These send your text to the Claude API and need an API key in `ANTHROPIC_API_KEY`. Every claim comes back as a quote, which bluepencil then finds in your files and reports at its real `file:line:column`; a quote it cannot find verbatim is marked. The deterministic core supplies the evidence the model reads: the numbered text, the pacing profile from `arc`, the sentence around each finding. Results vary between runs, so `check` never uses them. See `[model]` in [Configuration](https://writerslogic.github.io/bluepencil/configuration.html).
+These send your text to the configured model provider. Anthropic is the default; OpenAI, OpenRouter, and OpenAI-compatible endpoints are supported. Every claim comes back as a quote, which bluepencil then finds in your files and reports at its real `file:line:column`; a quote it cannot find verbatim is marked. The deterministic core supplies the evidence the model reads: the numbered text, the pacing profile from `arc`, the sentence around each finding. Results vary between runs, so `check` never uses them. See `[model]` in [Configuration](https://writerslogic.github.io/bluepencil/docs/configuration.html).
 
 </details>
 
@@ -161,12 +166,19 @@ These send your text to the Claude API and need an API key in `ANTHROPIC_API_KEY
 | Fountain | Scene headings become sections; dialogue is read from character cues, so action lines and speech are never confused |
 | Plain text | Blank-line paragraphs |
 | Word `.docx` | Paragraph text and heading styles are extracted and read as Markdown |
+| Scrivener `.scriv` | Draft binder text is read in order from the native project folder |
+| Final Draft `.fdx` | Script paragraphs are reconstructed as Fountain |
+| Ulysses `.ulyz`, `.ulysses` | Native sheet body text is read from the archive or package |
+| Tinderbox `.tbx` | Nested note text is read with note names preserved |
+| Pages `.pages` | On macOS, the Pages app exports a temporary Word file for analysis |
+
+See the [reproducible quality fixture](https://writerslogic.github.io/bluepencil/docs/quality.html) for measured rule behavior and its limits, and the [sample revision pass](https://writerslogic.github.io/bluepencil/docs/demo.html) for a complete walkthrough.
 
 Sentences split correctly around abbreviations, initials, ellipses, and dialogue punctuation. Curly and straight quotes both mark dialogue. Force a format with `--as`.
 
 ## In your workflow
 
-**Editor.** Any editor that understands `file:line:column` can jump to a result. In Vim, `:cexpr system('bluepencil echoes')` fills the quickfix list. The VS Code extension shows findings as diagnostics, live through the language server or on save through the CLI.
+**Editor.** Any editor that understands `file:line:column` can jump to a result. In Vim, `:cexpr system('bluepencil echoes')` fills the quickfix list. The VS Code extension shows findings as diagnostics while you edit through its bundled engine; the language server and CLI are optional.
 
 **CI and hooks.** Put limits under `[check]` in `bluepencil.toml` and run `bluepencil check` in a pre-commit hook or a workflow. It exits `1` when an `error`-severity limit is exceeded and `2` on errors; downgrade a rule to `warn` under `[check.severity]` to report it without failing. `check --since <git-ref>` scopes the located rules to lines changed since that ref, rated against the word count of just those lines, so a long manuscript can gate a pull request without flagging what was already there.
 
@@ -174,17 +186,17 @@ Sentences split correctly around abbreviations, initials, ellipses, and dialogue
 
 ## Guides
 
-- **[Quick start](https://writerslogic.github.io/bluepencil/quickstart.html)** -- a first run on a manuscript
-- **[Configuration](https://writerslogic.github.io/bluepencil/configuration.html)** -- `bluepencil.toml`, word lists, and the model settings
-- **[Thresholds and CI](https://writerslogic.github.io/bluepencil/thresholds.html)** -- gating a manuscript repository
-- **[Commands](https://writerslogic.github.io/bluepencil/commands/count.html)** -- one page per command with sample output
+- **[Quick start](https://writerslogic.github.io/bluepencil/docs/quickstart.html)** -- a first run on a manuscript
+- **[Configuration](https://writerslogic.github.io/bluepencil/docs/configuration.html)** -- `bluepencil.toml`, word lists, and the model settings
+- **[Thresholds and CI](https://writerslogic.github.io/bluepencil/docs/thresholds.html)** -- gating a manuscript repository
+- **[Commands](https://writerslogic.github.io/bluepencil/docs/commands/count.html)** -- one page per command with sample output
 - **[Contributing](CONTRIBUTING.md)** -- layout, adding a command, tests
 
 ## Requirements
 
 - One binary. Nothing else to install.
 - Rust 1.88+ to build from source.
-- The three model-backed commands and `--explain` need an API key; everything else runs offline.
+- The three model-backed commands and `--explain` need a provider API key, except for compatible local endpoints that do not require one; everything else runs offline.
 
 ## Development
 
@@ -219,10 +231,12 @@ Found a vulnerability? Please report it privately; see [SECURITY.md](SECURITY.md
 
 Licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option. &copy; [WritersLogic, Inc.](https://github.com/writerslogic)
 
+bluepencil is part of the [WritersLogic product family](https://writerslogic.github.io/), alongside Scrivener MCP, Holographic Memory, and WritersProof.
+
 <p align="center">
   <a href="https://github.com/writerslogic/bluepencil">GitHub</a> &middot;
   <a href="https://crates.io/crates/bluepencil">crates.io</a> &middot;
-  <a href="https://writerslogic.github.io/bluepencil/">Guide</a> &middot;
+  <a href="https://writerslogic.github.io/bluepencil/docs/">Guide</a> &middot;
   <a href="https://github.com/writerslogic/bluepencil/issues">Issues</a> &middot;
   <a href="CHANGELOG.md">Changelog</a>
 </p>

@@ -12,7 +12,7 @@ bluepencil report --html report.html
 - `--trend-since GIT_REF` add a word-count and style-flag trend chart to the HTML report,
   sampled from git history since this commit, tag, or date (requires `--html`)
 - `--trend-points N` number of points to sample between `--trend-since` and `HEAD` (default 8)
-- `--no-cache` skip reading the per-file analysis cache (still refreshes it for next time)
+- `--no-cache` skip reading and writing the per-file analysis cache
 
 Add `--json` for machine-readable output.
 

@@ -25,4 +25,4 @@ Each flagged line is a quote the model cited, pinned to its real `file:line:colu
 
 Add `--json` for machine-readable output.
 
-This command sends the manuscript to the Claude API and needs an API key; see `[model]` in [Configuration](../configuration.md). Where attribution can be inferred mechanically, the local [speakers](speakers.md) command counts who speaks and how much without a model.
+This command sends the manuscript to the configured model provider; see `[model]` in [Configuration](../configuration.md). Where attribution can be inferred mechanically, the local [speakers](speakers.md) command counts who speaks and how much without a model.

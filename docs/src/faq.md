@@ -10,4 +10,4 @@ The raw ratio falls as a text gets longer, so a novel always looks less varied t
 
 ## Does bluepencil send my writing anywhere?
 
-No. It reads local files and makes no network requests.
+The deterministic commands run locally and make no network requests. `facts`, `voice`, `scenes`, and `--explain` send manuscript text or finding context to the configured model provider when you explicitly run them. Remote providers require an API key and may charge for requests. `check` never invokes a model. See [Configuration](configuration.md) for the model settings.

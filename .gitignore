@@ -4,6 +4,7 @@
 /docs/book
 /editors/vscode/node_modules
 /editors/vscode/out
+/editors/vscode/engine
 *.vsix
 /report.html
 .bluepencil-cache

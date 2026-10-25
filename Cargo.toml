@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
-members = ["crates/bluepencil", "crates/bluepencil-core", "crates/bluepencil-lsp", "crates/bluepencil-node"]
+members = ["crates/bluepencil", "crates/bluepencil-core", "crates/bluepencil-lsp", "crates/bluepencil-node", "crates/bluepencil-web"]
 exclude = ["xtask", "fuzz"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"
@@ -13,7 +13,7 @@ homepage = "https://github.com/writerslogic/bluepencil"
 authors = ["David Condrey"]
 
 [workspace.dependencies]
-bluepencil-core = { path = "crates/bluepencil-core", version = "0.1.0" }
+bluepencil-core = { path = "crates/bluepencil-core", version = "0.2.0" }
 anyhow = "1"
 clap = { version = "4", features = ["derive", "wrap_help"] }
 clap_complete = "4"
@@ -28,6 +28,7 @@ toml = "1.1"
 tower-lsp = "0.20"
 unicode-segmentation = "1"
 ureq = { version = "3", features = ["json"] }
+url = "2"
 zip = { version = "2.4", default-features = false, features = ["deflate"] }
 
 [profile.release]

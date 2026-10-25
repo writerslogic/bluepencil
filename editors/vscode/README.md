@@ -1,61 +1,23 @@
 # bluepencil for VS Code
 
-Prose analysis for writers: echoes, repeats, rhythm, dialogue, readability, and more, inline
-in the editor.
+A local prose analysis companion for Markdown, Fountain, and plain text. The extension includes the bluepencil Rust analysis engine as WebAssembly, so installing the extension is enough to see observations while you write. Your text stays in the editor.
 
-This extension has two complementary modes:
+The bundled engine checks open files after a short pause and shows repeated words, familiar sentence openers, clichés, filter words, hedges, adverbs, passive constructions, sentence rhythm, and long sentences in the Problems panel. Select a diagnostic to jump to the passage. The **Check current file** command runs it immediately; **Run report** shows counts and up to 25 observations in the output panel. Files up to 1 MiB are supported by the bundled engine.
 
-1. **Language server (preferred).** If a `bluepencil-lsp` binary is on your `PATH` (or pointed
-   to via `bluepencil.lsp.path`), the extension launches it over stdio and shows its
-   diagnostics live as you type.
-2. **CLI fallback (works today).** If the language server binary isn't found, or
-   `bluepencil.lsp.enable` is `false`, the extension shells out to the `bluepencil` CLI on
-   every save of a supported file and shows the findings as inline diagnostics.
+Optional integrations remain available:
 
-Both modes cover Markdown (`.md`, `.markdown`) and Fountain (`.fountain`) files. VS Code has no
-built-in Fountain language, so this extension registers a minimal `fountain` language ID; if
-you already have a dedicated Fountain extension installed, its language contribution takes
-precedence and this one's `onStartupFinished` activation event still ensures bluepencil
-activates for `.fountain` files either way.
-
-## Requirements
-
-- The [`bluepencil`](https://github.com/writerslogic/bluepencil) CLI installed and on your
-  `PATH` (or configured via `bluepencil.cli.path`) for CLI-fallback checks and the
-  **bluepencil: Run report** command.
-- Optionally, a `bluepencil-lsp` binary on your `PATH` (or configured via `bluepencil.lsp.path`)
-  for live, as-you-type diagnostics.
-
-If neither is present, the extension does nothing destructive: it logs a message to the
-**bluepencil** output channel once and stays quiet rather than repeatedly erroring.
-
-## Commands
-
-- **bluepencil: Check current file** — runs the configured CLI checks against the active file
-  and populates the Problems panel.
-- **bluepencil: Run report** — runs `bluepencil report` on the active file and shows the output
-  in the **bluepencil** output channel.
-- **bluepencil: Restart language server** — stops and relaunches the `bluepencil-lsp` client,
-  useful after installing the server or changing `bluepencil.lsp.path`.
-
-## Settings
-
-| Setting | Default | Description |
+| Setting | Default | Use |
 | --- | --- | --- |
-| `bluepencil.lsp.enable` | `true` | Try to launch `bluepencil-lsp` for live diagnostics. |
-| `bluepencil.lsp.path` | `"bluepencil-lsp"` | Path to the language server binary. |
-| `bluepencil.cli.enable` | `true` | Run CLI-based checks on save when the language server is unavailable. |
-| `bluepencil.cli.path` | `"bluepencil"` | Path to the `bluepencil` CLI binary. |
-| `bluepencil.cli.commands` | `["adverbs", "passive", "cliches", "filter", "hedges", "tics"]` | `bluepencil` subcommands run on save. Each must support `--json` with a `findings` array carrying `file`/`line`/`column` (the "list" style commands — `adverbs`, `passive`, `cliches`, `filter`, `hedges`, `tics`, `nominal`, and similar). Commands with a different JSON shape, such as `echoes`, aren't supported by the fallback parser and shouldn't be added here. |
+| `bluepencil.lsp.enable` | `false` | Run an installed `bluepencil-lsp` instead of bundled diagnostics. |
+| `bluepencil.lsp.path` | `bluepencil-lsp` | Path to the external language server. |
+| `bluepencil.cli.enable` | `false` | Use an installed CLI for configured checks and full reports. |
+| `bluepencil.cli.path` | `bluepencil` | Path to the external CLI. |
+| `bluepencil.cli.commands` | adverbs, passive, cliches, filter, hedges, tics | CLI commands used on save. |
 
-## How CLI-fallback diagnostics work
+The external CLI supports native writing app files and project configuration. The bundled editor engine analyzes the open text and does not require a binary on your `PATH`.
 
-On save of a supported file, the extension runs each configured subcommand with `--json
-<file>` and parses the JSON `findings` array (`{ file, line, column, end_line, end_column,
-rule, message, text }`). `line`/`column` from the CLI are one-based; VS Code positions are
-zero-based, so the extension subtracts one from both before building a `Diagnostic`.
+## Build a VSIX
 
-## License
+Install Rust, the `wasm32-unknown-unknown` target, wasm-pack, and Node.js. Then run `npm ci` and `npx @vscode/vsce package` from this directory. The prepublish step builds the WebAssembly engine and compiles the extension. The resulting VSIX includes the engine for macOS, Linux, and Windows.
 
-Licensed under either of MIT or Apache-2.0, at your option, matching the rest of the
-bluepencil project.
+Licensed under MIT or Apache-2.0, at your option.

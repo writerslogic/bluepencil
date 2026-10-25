@@ -1,18 +1,11 @@
 # Editors
 
-Any editor that understands `file:line:column` can jump to results. In Vim, `:cexpr system('bluepencil echoes')` loads echoes into the quickfix list. In VS Code, Cmd-click a location in the integrated terminal.
+Any editor that understands `file:line:column` can jump to results. In Vim, `:cexpr system('bluepencil echoes')` loads echoes into the quickfix list.
 
 ## VS Code extension
 
-The `bluepencil` VS Code extension (`editors/vscode/`) shows findings inline as diagnostics.
-It has two modes:
+The [bluepencil VS Code extension](https://github.com/writerslogic/bluepencil/tree/main/editors/vscode) includes the Rust analysis engine as WebAssembly. Install its VSIX and open a Markdown, Fountain, or plain-text file: observations appear in the Problems panel as you edit, with no separate binary or account. **Check current file** reruns it immediately; **Run report** shows counts and a short review list.
 
-- **Language server.** If a `bluepencil-lsp` binary is on `PATH` (or set via
-  `bluepencil.lsp.path`), the extension connects to it over stdio and diagnostics update live.
-- **CLI fallback.** Without a language server, the extension runs the `bluepencil` CLI
-  (`bluepencil.cli.path`) on save for Markdown and Fountain files, using the location-carrying
-  `--json` subcommands (`adverbs`, `passive`, `cliches`, `filter`, `hedges`, `tics`, and similar
-  — configurable via `bluepencil.cli.commands`) and turns each finding into a diagnostic.
+Download the VSIX from the [latest release](https://github.com/writerslogic/bluepencil/releases/latest), then install it with `code --install-extension bluepencil-0.2.0.vsix`. To build one from source, install Rust, the `wasm32-unknown-unknown` target, wasm-pack, and Node.js, then run `npm ci` and `npx @vscode/vsce package` in `editors/vscode`.
 
-To install it, run `npx @vscode/vsce package` in `editors/vscode` and then `code --install-extension bluepencil-0.1.0.vsix`. See `editors/vscode/README.md` for settings details. A language server
-(`crates/bluepencil-lsp`) is what the extension's first mode talks to.
+For project configuration and full CLI reports, install `bluepencil` and set `bluepencil.cli.enable` to `true`. To use the external language server, install `bluepencil-lsp` and set `bluepencil.lsp.enable` to `true`. See the [extension README](https://github.com/writerslogic/bluepencil/tree/main/editors/vscode#readme) for settings.

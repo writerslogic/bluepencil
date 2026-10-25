@@ -18,4 +18,4 @@ ch03.md:12:7  hedges  very
 
 Verdicts are `fix`, `consider`, and `keep`. `keep` marks a false positive or a deliberate choice, such as a line of dialogue that sounds like a person talking.
 
-This is the only part of bluepencil that leaves your machine. It is off unless you pass the flag, it needs an API key in `ANTHROPIC_API_KEY` (or the variable named by `model.api_key_env`), and it never changes what is found or how `check` scores it. With `--json`, each explained finding carries a `note` object. At most `model.max_findings` findings are explained per run, 40 by default.
+`--explain`, `facts`, `voice`, and `scenes` are the model-backed features that send text to the provider configured under `[model]`. Each is off unless explicitly invoked. Remote providers need an API key and may charge for requests. None changes what the deterministic commands find or how `check` scores results. With `--json`, each explained finding carries a `note` object. At most `model.max_findings` findings are explained per run, 40 by default.

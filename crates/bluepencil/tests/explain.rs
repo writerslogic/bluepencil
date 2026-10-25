@@ -266,6 +266,9 @@ fn explain_is_rejected_on_commands_that_do_not_support_it() {
 
 mod tempdir {
     use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT: AtomicU64 = AtomicU64::new(0);
 
     pub struct Dir {
         pub path: PathBuf,
@@ -274,9 +277,10 @@ mod tempdir {
     impl Dir {
         pub fn new() -> Self {
             let path = std::env::temp_dir().join(format!(
-                "bluepencil-explain-{}-{}",
+                "bluepencil-explain-{}-{}-{}",
                 std::process::id(),
-                std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+                std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos(),
+                NEXT.fetch_add(1, Ordering::Relaxed)
             ));
             std::fs::create_dir_all(&path).unwrap();
             Self { path }

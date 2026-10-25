@@ -8,7 +8,7 @@ use bluepencil_core::analysis::{
 };
 use bluepencil_core::stats::readability::Readability;
 use bluepencil_core::stats::{Summary, per_thousand};
-use bluepencil_core::{Document, Lexicons};
+use bluepencil_core::{Document, Finding, Lexicons};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +23,17 @@ use crate::output::{html, json};
 pub struct ReportOutput {
     pub total: Metrics,
     pub files: Vec<Metrics>,
+    pub revisions: Vec<RevisionItem>,
+}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+pub struct RevisionItem {
+    pub file: String,
+    pub line: usize,
+    pub column: usize,
+    pub rule: String,
+    pub message: String,
+    pub excerpt: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -126,18 +137,20 @@ pub fn measure(ctx: &Context, docs: &[Document], name: &str) -> Metrics {
     m
 }
 
-fn measure_cached(ctx: &Context, cache: &Cache, doc: &Document, name: &str, use_cache: bool) -> Metrics {
+fn measure_cached(ctx: &Context, cache: Option<&Cache>, doc: &Document, name: &str) -> Metrics {
     // The cache key is content + config only, not `name`, so the same file cached under one
     // name (e.g. a single-file report's "all files") and then looked up under another (its own
     // path, in a later multi-file report) still hits -- but the retrieved value must be
     // relabeled to the name this call actually asked for, or the wrong filename leaks into
     // the "by file" breakdown.
-    if let Some(mut m) = cache.get(doc, use_cache) {
+    if let Some(mut m) = cache.and_then(|cache| cache.get(doc, true)) {
         m.name = name.to_string();
         return m;
     }
     let m = measure(ctx, std::slice::from_ref(doc), name);
-    cache.put(doc, &m);
+    if let Some(cache) = cache {
+        cache.put(doc, &m);
+    }
     m
 }
 
@@ -160,43 +173,117 @@ fn combined_readability(docs: &[Document]) -> Readability {
     }
 }
 
+fn revision_item(doc: &Document, finding: &Finding) -> RevisionItem {
+    let pos = doc.position(finding.span.start);
+    let sentence = doc
+        .sentences()
+        .find(|s| s.span.start <= finding.span.start && finding.span.start < s.span.end)
+        .map_or(finding.span, |s| s.span);
+    RevisionItem {
+        file: doc.name.clone(),
+        line: pos.line,
+        column: pos.column,
+        rule: finding.rule.to_string(),
+        message: finding.message.clone(),
+        excerpt: crate::output::excerpt(doc, sentence, 160),
+    }
+}
+
+fn revisions(ctx: &Context, docs: &[Document]) -> Vec<RevisionItem> {
+    let mut ranked = Vec::new();
+    let lex = &ctx.lexicons;
+    let cfg = &ctx.config;
+    let ignore = ctx.echo_ignore();
+    for doc in docs {
+        let echoes =
+            echoes::echoes(doc, lex, cfg.echoes.window, cfg.echoes.min_length, &ignore, cfg.echoes.include_names);
+        for echo in echoes {
+            let finding = Finding {
+                rule: "echo",
+                message: format!("\"{}\" repeats {} words later", echo.word, echo.distance),
+                span: echo.second,
+            };
+            ranked.push((100u8.saturating_sub(echo.distance.min(50) as u8), revision_item(doc, &finding)));
+        }
+        let mut add = |rank: u8, findings: Vec<Finding>| {
+            ranked.extend(findings.iter().map(|f| (rank, revision_item(doc, f))));
+        };
+        add(90, cliches::find(doc, lex));
+        add(85, starters::starters(doc, cfg.starters.run).findings);
+        add(80, rhythm::rhythm(doc, cfg.rhythm.run, cfg.rhythm.tolerance, cfg.rhythm.long).findings);
+        add(75, tics::find(doc, lex));
+        add(70, passive::find(doc, lex));
+        add(65, nominalization::find(doc, lex));
+        add(60, filter_words::find(doc, lex));
+        add(55, hedges::find(doc, lex));
+        add(40, adverbs::find(doc, lex));
+    }
+    ranked.sort_by(|(a_rank, a), (b_rank, b)| {
+        b_rank
+            .cmp(a_rank)
+            .then_with(|| a.file.cmp(&b.file))
+            .then_with(|| a.line.cmp(&b.line))
+            .then_with(|| a.column.cmp(&b.column))
+    });
+    let mut per_rule = std::collections::HashMap::<String, usize>::new();
+    ranked
+        .into_iter()
+        .filter_map(|(_, item)| {
+            let count = per_rule.entry(item.rule.clone()).or_default();
+            if *count >= 3 {
+                return None;
+            }
+            *count += 1;
+            Some(item)
+        })
+        .take(ctx.limit.min(50))
+        .collect()
+}
+
 pub fn run(ctx: &Context, args: &ReportArgs) -> Result<()> {
     if args.trend_since.is_some() && args.html.is_none() {
         bail!("--trend-since needs --html to write the chart to");
     }
 
     let docs = ctx.documents(&args.input)?;
-    let cache = ctx.cache();
-    let use_cache = !args.no_cache;
+    let cache = (!args.no_cache).then(|| ctx.cache());
     // `overused`, `top_words`, and `diversity` look across all documents together, so only a
     // single-document `total` (docs.len() == 1) is safe to serve from the per-file cache; with
     // more than one document the total must see every document's raw words at once.
     let total = if docs.len() == 1 {
-        measure_cached(ctx, &cache, &docs[0], "all files", use_cache)
+        measure_cached(ctx, cache.as_ref(), &docs[0], "all files")
     } else {
         measure(ctx, &docs, "all files")
     };
     let files: Vec<Metrics> = if docs.len() > 1 {
-        docs.iter().map(|d| measure_cached(ctx, &cache, d, &d.name, use_cache)).collect()
+        docs.iter().map(|d| measure_cached(ctx, cache.as_ref(), d, &d.name)).collect()
     } else {
         Vec::new()
     };
+    let revisions = revisions(ctx, &docs);
 
     if let Some(path) = &args.html {
         let trend = match &args.trend_since {
             Some(since) => super::trend::collect(ctx, &docs, since, args.trend_points)?,
             None => Vec::new(),
         };
-        std::fs::write(path, html::report(&total, &files, &trend))
+        std::fs::write(path, html::report(&total, &files, &revisions, &trend))
             .with_context(|| format!("writing {}", path.display()))?;
         if !ctx.json {
             println!("Wrote {}\n", path.display());
         }
     }
     if ctx.json {
-        return json::print(&ReportOutput { total, files });
+        return json::print(&ReportOutput { total, files, revisions });
     }
     print_human(&total, &files);
+    if !revisions.is_empty() {
+        println!("\nREVIEW NEXT");
+        for item in revisions.iter().take(5) {
+            println!("{}:{}:{}  {}  {}", item.file, item.line, item.column, item.rule, item.message);
+            println!("    {}", item.excerpt);
+        }
+    }
     Ok(())
 }
 

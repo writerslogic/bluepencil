@@ -1,0 +1,53 @@
+name: Writer feedback
+description: Tell us which observations helped and which got in the way
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: "Please share only writing you have permission to post publicly. A short excerpt is enough."
+  - type: dropdown
+    id: format
+    attributes:
+      label: Writing format
+      options:
+        - Markdown or plain text
+        - Fountain
+        - Scrivener
+        - Final Draft
+        - Ulysses
+        - Tinderbox
+        - Pages
+        - Word
+    validations:
+      required: true
+  - type: textarea
+    id: useful
+    attributes:
+      label: What helped?
+      description: Which observation made you reconsider a passage, and what did you decide?
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: What got in the way?
+      description: Include a false positive or confusing result if you saw one.
+    validations:
+      required: false
+  - type: textarea
+    id: excerpt
+    attributes:
+      label: Optional short excerpt
+      description: Include the bluepencil output and text only if you may share them publicly.
+    validations:
+      required: false
+  - type: dropdown
+    id: case-study
+    attributes:
+      label: May we contact you about a public case study?
+      description: This answer is not permission to publish your text or name; we would ask separately.
+      options:
+        - No
+        - Yes, contact me first
+    validations:
+      required: true

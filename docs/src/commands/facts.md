@@ -26,4 +26,4 @@ Mara / eye color
 
 Add `--json` for machine-readable output; each fact carries `verified`, and each contradiction indexes into `facts`.
 
-This command sends the manuscript to the Claude API and needs an API key; see `[model]` in [Configuration](../configuration.md). Results are the model's reading and vary between runs, so `check` does not use them.
+This command sends the manuscript to the configured model provider; see `[model]` in [Configuration](../configuration.md). Results are the model's reading and vary between runs, so `check` does not use them.

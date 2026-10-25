@@ -21,6 +21,25 @@ fn run_report(dir: &std::path::Path) -> String {
 }
 
 #[test]
+fn no_cache_does_not_create_cache_or_gitignore() {
+    let dir = unique_dir();
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("one.md"), "One two three four five.\n").unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_bluepencil"))
+        .current_dir(&dir)
+        .args(["report", "--json", "--no-cache", "one.md"])
+        .stdin(std::process::Stdio::null())
+        .output()
+        .expect("running bluepencil");
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(!dir.join(".bluepencil-cache").exists());
+    assert!(!dir.join(".gitignore").exists());
+
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
 fn cached_rerun_on_unchanged_file_reports_identical_output() {
     let dir = unique_dir();
     std::fs::create_dir_all(&dir).unwrap();

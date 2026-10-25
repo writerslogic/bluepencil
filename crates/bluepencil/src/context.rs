@@ -72,6 +72,12 @@ impl Context {
             docs.push(Document::parse("<stdin>", text, format));
         }
         for path in glob::expand(&paths, &base)? {
+            if self.format.is_none()
+                && let Some(mut native_docs) = crate::native::load(&path)?
+            {
+                docs.append(&mut native_docs);
+                continue;
+            }
             let bytes = std::fs::read(&path).with_context(|| format!("reading {}", path.display()))?;
             let as_docx =
                 matches!(self.format, Some(InputFormat::Docx)) || (self.format.is_none() && is_docx_path(&path));

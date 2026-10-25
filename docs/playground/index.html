@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101923">
+  <meta name="author" content="WritersLogic, Inc.">
+  <meta name="description" content="Find repeated words, distracting patterns, and prose worth revisiting. Try bluepencil in your browser; your writing stays on your device.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="bluepencil by WritersLogic">
+  <meta property="og:title" content="bluepencil — find the lines worth revising">
+  <meta property="og:description" content="A private, local prose analysis playground for writers. Paste a passage and see what stands out.">
+  <meta property="og:url" content="https://writerslogic.github.io/bluepencil/">
+  <meta property="og:image" content="https://writerslogic.github.io/bluepencil/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://writerslogic.github.io/bluepencil/og-image.png">
+  <link rel="canonical" href="https://writerslogic.github.io/bluepencil/">
+  <link rel="icon" type="image/png" href="./logo.png">
+  <link rel="preload" href="./fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./fonts/source-serif-4.woff2" as="font" type="font/woff2" crossorigin>
+  <title>bluepencil — a private prose playground by WritersLogic</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://writerslogic.com/#organization","name":"WritersLogic, Inc.","url":"https://writerslogic.com/"},{"@type":"SoftwareApplication","name":"bluepencil","applicationCategory":"WritingApplication","operatingSystem":"Web, macOS, Linux, Windows","url":"https://writerslogic.github.io/bluepencil/","codeRepository":"https://github.com/writerslogic/bluepencil","isAccessibleForFree":true,"publisher":{"@id":"https://writerslogic.com/#organization"}}]}</script>
+</head>
+<body>
+  <a class="skip" href="#source">Skip to editor</a>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-group">
+        <a class="identity" href="./" aria-label="bluepencil home"><img class="mark" src="./logo.png" alt="" width="40" height="40"><span class="identity-stack"><span class="wordmark">bluepencil<span class="wordmark-dot">.</span></span><span class="mobile-parent">by WritersLogic</span></span></a>
+        <span class="brand-divider" aria-hidden="true"></span>
+        <a class="parent-brand" href="https://writerslogic.com/">A WritersLogic project <span aria-hidden="true">↗</span></a>
+      </div>
+      <nav class="header-actions" aria-label="Main navigation"><span class="privacy-pill"><span aria-hidden="true">●</span> Local analysis · No upload</span><span class="mobile-private"><span aria-hidden="true">●</span> Local</span><a class="guide-link" href="./docs/">Guide</a><a class="github-link" href="https://github.com/writerslogic/bluepencil"><span class="star-label">Star on GitHub</span><span class="mobile-github">GitHub</span> <span aria-hidden="true">↗</span></a></nav>
+    </header>
+
+    <section class="deskbar" aria-labelledby="desk-title">
+      <div class="desk-title"><p class="eyebrow">THE WRITING DESK <span aria-hidden="true">/</span> BROWSER EDITION</p><h1 id="desk-title">Find the lines worth <em>another look.</em></h1></div>
+      <div class="sample-group" role="group" aria-label="Example passages"><span>TRY A SAMPLE</span><button class="sample-choice" type="button" data-sample="fiction" aria-pressed="true">Fiction passage</button><button class="sample-choice" type="button" data-sample="screenplay" aria-pressed="false">Screenplay scene</button></div>
+    </section>
+
+    <div class="mobile-panel-tabs" role="tablist" aria-label="Writing desk panels"><button id="mobile-editor" type="button" role="tab" aria-selected="true" aria-controls="editor-panel">Editor</button><button id="mobile-results" type="button" role="tab" aria-selected="false" aria-controls="results-panel" tabindex="-1">Findings <span id="mobile-count" hidden></span></button></div>
+
+    <main id="workspace" class="workspace" data-mobile-panel="editor" aria-label="Writing playground">
+      <section class="panel editor-panel" id="editor-panel" aria-label="Your passage">
+        <div class="panel-head"><div class="panel-title"><span class="panel-icon" aria-hidden="true">✎</span><h2>Your passage</h2></div><div class="controls"><label for="format">FORMAT</label><select id="format"><option value="markdown">Markdown</option><option value="plain">Plain text</option><option value="fountain">Fountain</option></select></div></div>
+        <div class="editor-wrap" id="drop-zone"><textarea id="source" spellcheck="false" aria-label="Passage to analyze" placeholder="Write, paste, or open a text file to begin…"></textarea><div class="drop-hint" aria-hidden="true">Drop a text file to read it here</div></div>
+        <div class="panel-foot"><div class="editor-actions"><input id="file-input" type="file" accept=".md,.markdown,.mdx,.txt,.fountain,.spmd,text/plain,text/markdown" hidden><button id="open-file" type="button" class="text-button">↗ &nbsp; Open file</button><button id="clear" type="button" class="text-button">Clear</button></div><button id="analyze" type="button" class="primary-button">See findings <span aria-hidden="true">→</span></button></div>
+      </section>
+
+      <section class="panel results-panel" id="results-panel" aria-label="Analysis results">
+        <div class="panel-head"><div class="panel-title"><span class="panel-icon blue" aria-hidden="true">◎</span><h2>What stands out</h2></div><span id="stats" class="stats" aria-live="polite"></span></div>
+        <div class="results-body"><p id="status" role="status">Loading the local analysis engine…</p><div class="view-tabs" role="tablist" aria-label="Result view"><button id="findings-tab" type="button" role="tab" aria-selected="true" aria-controls="findings-view">Findings</button><button id="annotated-tab" type="button" role="tab" aria-selected="false" aria-controls="annotated-view" tabindex="-1">Marked passage</button></div><div id="findings-view" role="tabpanel" aria-labelledby="findings-tab"><div id="filter-bar" class="filter-bar" role="group" aria-label="Filter findings" hidden></div><ol id="findings" aria-label="Findings"></ol></div><div id="annotated-view" role="tabpanel" aria-labelledby="annotated-tab" hidden><p class="marked-intro">Select a marked phrase to see its observation.</p><div id="annotated" aria-label="Passage with findings marked"></div></div></div>
+        <div class="results-foot"><span><span class="mini-mark" aria-hidden="true">✦</span> Observations, not instructions.</span><button id="copy-findings" type="button" class="text-button">Copy findings</button></div>
+      </section>
+    </main>
+
+    <footer class="app-footer"><span>Your writing stays on this device. Analysis runs locally in WebAssembly.</span><div><a href="https://writerslogic.com/">WritersLogic</a><a href="https://writersproof.com/">WritersProof</a><a href="https://holographic-memory.com/">Holographic Memory</a><a href="https://github.com/writerslogic/bluepencil#install">Install bluepencil <span aria-hidden="true">↗</span></a></div></footer>
+  </div>
+  <script type="module" src="./playground.js"></script>
+</body>
+</html>

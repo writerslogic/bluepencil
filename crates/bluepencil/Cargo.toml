@@ -18,11 +18,15 @@ anyhow.workspace = true
 clap.workspace = true
 clap_complete.workspace = true
 glob.workspace = true
+quick-xml.workspace = true
+rtf-to-html = "0.1"
 schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
 ureq.workspace = true
+url.workspace = true
+zip.workspace = true
+tempfile = "3"
 
 [dev-dependencies]
-zip.workspace = true

@@ -7,11 +7,19 @@ pub fn expand(patterns: &[String], base: &Path) -> Result<Vec<PathBuf>> {
     let mut out: Vec<PathBuf> = Vec::new();
     for pattern in patterns {
         let full = if Path::new(pattern).is_absolute() { PathBuf::from(pattern) } else { base.join(pattern) };
+        let is_glob = pattern.contains(['*', '?', '[']);
         let mut matched: Vec<PathBuf> = match ::glob::glob(&full.to_string_lossy()) {
-            Ok(paths) => paths.filter_map(Result::ok).filter(|p| p.is_file()).collect(),
+            Ok(paths) => paths
+                .filter_map(Result::ok)
+                .filter(|p| p.is_file() || crate::native::is_package_dir(p))
+                .filter(|p| !is_glob || !p.ancestors().skip(1).any(crate::native::is_package_dir))
+                .collect(),
             Err(_) => Vec::new(),
         };
         if matched.is_empty() && full.is_file() {
+            matched.push(full.clone());
+        }
+        if matched.is_empty() && crate::native::is_package_dir(&full) {
             matched.push(full);
         }
         if matched.is_empty() {

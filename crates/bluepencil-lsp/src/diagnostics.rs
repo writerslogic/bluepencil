@@ -10,19 +10,15 @@ const SOURCE: &str = "bluepencil";
 
 /// Converts a byte-offset `Span` into an LSP `Range`.
 ///
-/// `bluepencil_core::Position` is 1-indexed for both line and column; LSP
-/// positions are 0-indexed for both, so each component is shifted down by one.
-/// `bluepencil_core`'s column counts Unicode scalar values, while LSP's
-/// `character` counts UTF-16 code units; these agree for BMP text (including
-/// curly quotes and em-dashes) but diverge on astral characters (e.g. emoji),
-/// which is not handled here.
 fn range(doc: &Document, span: Span) -> Range {
-    let start = doc.position(span.start);
-    let end = doc.position(span.end);
-    Range {
-        start: Position { line: (start.line - 1) as u32, character: (start.column - 1) as u32 },
-        end: Position { line: (end.line - 1) as u32, character: (end.column - 1) as u32 },
+    fn position(doc: &Document, offset: usize) -> Position {
+        let offset = offset.min(doc.source.len());
+        let line_start = doc.source[..offset].rfind('\n').map_or(0, |index| index + 1);
+        let line = (doc.position(offset).line - 1) as u32;
+        let character = doc.source[line_start..offset].encode_utf16().count() as u32;
+        Position { line, character }
     }
+    Range { start: position(doc, span.start), end: position(doc, span.end) }
 }
 
 /// Maps one `Finding` (adverbs, clichés, hedges, filter words, passive voice, ...)
@@ -97,5 +93,18 @@ mod tests {
         assert_eq!(diagnostic.source, Some(SOURCE.to_string()));
         assert_eq!(diagnostic.code, Some(NumberOrString::String("adverb".to_string())));
         assert_eq!(diagnostic.message, "adverbly");
+    }
+
+    #[test]
+    fn counts_astral_characters_as_two_utf16_units() {
+        let source = "😀 word\nA 😀 quietly";
+        let doc = Document::parse("test", source, Format::Plain);
+        let start = source.find("quietly").unwrap();
+        let diagnostic = finding_to_diagnostic(
+            &doc,
+            &Finding { rule: "adverb", message: "quietly".into(), span: Span::new(start, start + 7) },
+        );
+        assert_eq!(diagnostic.range.start, Position { line: 1, character: 5 });
+        assert_eq!(diagnostic.range.end, Position { line: 1, character: 12 });
     }
 }

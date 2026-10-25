@@ -1,4 +1,4 @@
-use crate::commands::report::Metrics;
+use crate::commands::report::{Metrics, RevisionItem};
 use crate::commands::trend::TrendPoint;
 
 const TEMPLATE: &str = include_str!("../../templates/report.html");
@@ -87,7 +87,7 @@ fn trend_chart(points: &[TrendPoint]) -> String {
     )
 }
 
-pub fn report(m: &Metrics, files: &[Metrics], trend: &[TrendPoint]) -> String {
+pub fn report(m: &Metrics, files: &[Metrics], revisions: &[RevisionItem], trend: &[TrendPoint]) -> String {
     let c = &m.counts;
     let r = &m.readability;
     let overview = [
@@ -101,6 +101,27 @@ pub fn report(m: &Metrics, files: &[Metrics], trend: &[TrendPoint]) -> String {
         stat("dialogue", format!("{:.0}%", m.dialogue.ratio * 100.0)),
     ]
     .join("");
+    let review = if revisions.is_empty() {
+        String::new()
+    } else {
+        let items: String = revisions
+            .iter()
+            .map(|item| {
+                format!(
+                    "<li><span class=\"location\">{}:{}:{}</span><span class=\"rule\">{}</span><p>{}</p><blockquote>{}</blockquote></li>",
+                    esc(&item.file),
+                    item.line,
+                    item.column,
+                    esc(&item.rule),
+                    esc(&item.message),
+                    esc(&item.excerpt)
+                )
+            })
+            .collect();
+        format!(
+            "<section><h2>Review next</h2><p class=\"muted\">These are observations to consider, ordered by rule and proximity. Keep deliberate choices.</p><ol class=\"review-list\">{items}</ol></section>"
+        )
+    };
 
     let flags: Vec<(&str, usize)> = vec![
         ("Echoes", m.echoes),
@@ -153,6 +174,7 @@ pub fn report(m: &Metrics, files: &[Metrics], trend: &[TrendPoint]) -> String {
         .replace("{{version}}", env!("CARGO_PKG_VERSION"))
         .replace("{{trend}}", &trend_chart(trend))
         .replace("{{overview}}", &overview)
+        .replace("{{revisions}}", &review)
         .replace("{{flags}}", &flag_rows)
         .replace("{{top_words}}", &chips(&m.top_words))
         .replace("{{top_starters}}", &chips(&m.top_starters))

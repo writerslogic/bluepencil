@@ -80,6 +80,7 @@ ignore = []
 # (fix / consider / keep) to each finding, and the `facts`, `voice`, and `scenes` commands.
 # Everything else runs locally and never depends on these. The key is read from this environment variable
 # and never from this file.
+# provider = "anthropic"  # anthropic, openai, openrouter, compatible
 # api_key_env = "ANTHROPIC_API_KEY"
 # model = "claude-opus-5-5"
 # effort = "medium"          # low, medium, high, xhigh, max
