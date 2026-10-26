@@ -95,16 +95,20 @@ pub fn pov(doc: &Document, run: usize) -> PovResult {
     let mut findings = Vec::new();
     let mut i = 0;
     while i < classified.len() {
-        let j = i + classified[i..].iter().take_while(|(p, _)| *p != dominant).count();
-        if j - i >= run && classified[i].0 != dominant {
-            let other = classified[i].0;
+        let other = classified[i].0;
+        if other == dominant {
+            i += 1;
+            continue;
+        }
+        let j = i + classified[i..].iter().take_while(|(p, _)| *p == other).count();
+        if j - i >= run {
             findings.push(Finding {
                 rule: "pov-drift",
                 message: format!("{} sentences drift into {other:?} person", j - i),
                 span: Span::new(classified[i].1.start, classified[j - 1].1.end),
             });
         }
-        i = j.max(i + 1);
+        i = j;
     }
 
     PovResult { dominant, first_sentences, second_sentences, third_sentences, findings }
@@ -141,6 +145,16 @@ mod tests {
     fn ignores_dialogue_when_classifying() {
         let d = doc("She walked home. \"I am tired,\" she said. She opened the door.");
         let r = pov(&d, 2);
+        assert_eq!(r.dominant, Pov::Third);
+        assert!(r.findings.is_empty());
+    }
+
+    #[test]
+    fn does_not_merge_first_and_second_person_into_one_run() {
+        let d = doc("She walked home. She opened the door. She put down her bag. \
+                     I sat down. You stood up. I watched. You waited. \
+                     She closed the window. She folded her coat. She rested.");
+        let r = pov(&d, 3);
         assert_eq!(r.dominant, Pov::Third);
         assert!(r.findings.is_empty());
     }

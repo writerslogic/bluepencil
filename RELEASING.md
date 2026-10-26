@@ -10,3 +10,5 @@ The CLI, core library, language server, and VS Code extension use the same relea
 6. To publish the extension in the VS Code Marketplace, upload the release VSIX under the `WritersLogic` publisher or add a `VSCE_PAT` repository secret with Marketplace manage permission and run `publish-vscode.yml` against the release tag. Check that the Marketplace lists the new version before linking it from the README and guide. Version 0.2.0 uses a [separate VSIX release](https://github.com/writerslogic/bluepencil/releases/tag/vscode-extension-2026-10-25) because its binary release was already immutable when the VSIX was packaged.
 
 Verify the public writing desk at `https://writerslogic.github.io/bluepencil/` and the guide at `https://writerslogic.github.io/bluepencil/docs/` after the Docs workflow finishes.
+
+The site build requires `npm --prefix docs/playground ci` before `bash scripts/build-pages.sh`. Run the [browser integration checks](CONTRIBUTING.md#browser-writing-desk) before publishing changes to the writing desk.

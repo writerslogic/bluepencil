@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- A manuscript-sized browser editor with inline highlights, type switches, explanations above the text, and findings that follow the visible passage.
+- A manuscript chart with independently selectable sentence length, paragraph length, dialogue share, finding density, and sentence variation; zoom to the visible passage or navigate from a chart node to the text.
+- Background analysis with progress and cancellation for text files up to 16 MiB, plus repeated phrases, wordy constructions, dialogue tags, and conservative tense/person observations in the browser.
+
+### Fixed
+
+- Repetition and rhythm runs now stop at headings. Person-shift runs no longer combine different grammatical persons. Browser filters suppress conversational perception words and sensory descriptions, and large-document results are retrieved throughout the text.
+- Mobile import errors remain visible; the editor supports undo and downloading revisions.
+
 ## [0.2.0] - 2026-10-25
 
 ### Added

@@ -41,7 +41,10 @@ pub fn starters(doc: &Document, run: usize) -> Starters {
 
     let mut i = 0;
     while i < firsts.len() {
-        let j = i + firsts[i..].iter().take_while(|(w, _)| *w == firsts[i].0).count();
+        let next_heading = doc.headings.partition_point(|heading| heading.span.start <= firsts[i].1.start);
+        let section_end = doc.headings.get(next_heading).map_or(doc.source.len(), |heading| heading.span.start);
+        let j =
+            i + firsts[i..].iter().take_while(|(word, span)| *word == firsts[i].0 && span.start < section_end).count();
         if j - i >= run {
             findings.push(Finding {
                 rule: "repeated-starter",
@@ -53,4 +56,21 @@ pub fn starters(doc: &Document, run: usize) -> Starters {
     }
 
     Starters { sentence: ranked(sentence), paragraph: ranked(paragraph), findings }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Format;
+
+    #[test]
+    fn opening_runs_stop_at_headings_without_losing_runs_inside_sections() {
+        for count in [2, 3, 4] {
+            let passage = "She walked home. ".repeat(count);
+            let doc = Document::parse("test.md", format!("# One\n{passage}\n\n# Two\n{passage}"), Format::Markdown);
+            let result = starters(&doc, 3);
+            assert_eq!(result.findings.len(), if count >= 3 { 2 } else { 0 });
+            assert_eq!(result.sentence[0].1, count * 2);
+        }
+    }
 }

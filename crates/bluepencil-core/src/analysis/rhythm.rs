@@ -25,9 +25,11 @@ pub fn rhythm(doc: &Document, min_run: usize, tolerance: usize, long: usize) -> 
 
     let mut i = 0;
     while i < lengths.len() {
+        let next_heading = doc.headings.partition_point(|heading| heading.span.start <= sentences[i].span.start);
+        let section_end = doc.headings.get(next_heading).map_or(doc.source.len(), |heading| heading.span.start);
         let (mut lo, mut hi) = (lengths[i], lengths[i]);
         let mut j = i + 1;
-        while j < lengths.len() {
+        while j < lengths.len() && sentences[j].span.start < section_end {
             let (nlo, nhi) = (lo.min(lengths[j]), hi.max(lengths[j]));
             if nhi - nlo > tolerance {
                 break;
@@ -56,4 +58,20 @@ pub fn rhythm(doc: &Document, min_run: usize, tolerance: usize, long: usize) -> 
 
     let variation = if summary.mean > 0.0 { summary.stdev / summary.mean } else { 0.0 };
     Rhythm { lengths, summary, variation, findings }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Format;
+
+    #[test]
+    fn rhythm_runs_stop_at_headings_without_losing_runs_inside_sections() {
+        for count in [3, 4, 5] {
+            let passage = "The rain fell. ".repeat(count);
+            let doc = Document::parse("test.md", format!("# One\n{passage}\n\n# Two\n{passage}"), Format::Markdown);
+            let result = rhythm(&doc, 4, 3, 40);
+            assert_eq!(result.findings.len(), if count >= 4 { 2 } else { 0 });
+        }
+    }
 }
