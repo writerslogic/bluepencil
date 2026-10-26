@@ -16,6 +16,10 @@ Optional integrations remain available:
 
 The external CLI supports native writing app files and project configuration. The bundled editor engine analyzes the open text and does not require a binary on your `PATH`.
 
+## Install
+
+Install [bluepencil from the VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=WritersLogic.bluepencil), or run `code --install-extension WritersLogic.bluepencil`. The [0.2.0 VSIX](https://github.com/writerslogic/bluepencil/releases/download/vscode-extension-2026-10-25/bluepencil-0.2.0.vsix) is also available for manual installation.
+
 ## Build a VSIX
 
 Install Rust, the `wasm32-unknown-unknown` target, wasm-pack, and Node.js. Then run `npm ci` and `npx @vscode/vsce package` from this directory. The prepublish step builds the WebAssembly engine and compiles the extension. The resulting VSIX includes the engine for macOS, Linux, and Windows.
