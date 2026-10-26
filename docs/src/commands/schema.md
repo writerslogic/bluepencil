@@ -1,6 +1,7 @@
 # schema
 
 Prints the JSON Schema for a command's `--json` output.
+Schemas use JSON Schema Draft 2020-12.
 
 ```sh
 bluepencil schema count
