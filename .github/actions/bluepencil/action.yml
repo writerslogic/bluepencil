@@ -11,7 +11,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: dtolnay/rust-toolchain@stable
+    - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
     - name: Install bluepencil
       shell: bash
       run: cargo install --locked --path "$GITHUB_ACTION_PATH/../../../crates/bluepencil" --bin bluepencil
