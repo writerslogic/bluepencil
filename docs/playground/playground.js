@@ -1,21 +1,24 @@
-import init, { analyze } from "./pkg/bluepencil_web.js";
+import { createEditor } from "./editor.js";
+import { createChart } from "./chart.js";
+import { MAX_INPUT_BYTES, groupFor, groups, rules } from "./review.js";
 
 const source = document.getElementById("source");
 const format = document.getElementById("format");
-const findings = document.getElementById("findings");
-const filterBar = document.getElementById("filter-bar");
-const status = document.getElementById("status");
-const stats = document.getElementById("stats");
 const button = document.getElementById("analyze");
-const annotated = document.getElementById("annotated");
-const dropZone = document.getElementById("drop-zone");
+const stats = document.getElementById("stats");
+const status = document.getElementById("viewport-summary");
+const notice = document.getElementById("analysis-notice");
+const noticeMessage = document.getElementById("analysis-message");
+const progress = document.getElementById("analysis-progress");
+const cancelButton = document.getElementById("cancel-analysis");
 const fileInput = document.getElementById("file-input");
-const workspace = document.getElementById("workspace");
-const mobileTabs = [document.getElementById("mobile-editor"), document.getElementById("mobile-results")];
-const mobileCount = document.getElementById("mobile-count");
-const compactLayout = window.matchMedia("(max-width: 900px)");
-const tabs = [document.getElementById("findings-tab"), document.getElementById("annotated-tab")];
-const panels = [document.getElementById("findings-view"), document.getElementById("annotated-view")];
+const editorWrap = document.getElementById("editor-wrap");
+const dropHint = document.getElementById("drop-hint");
+const findingPanel = document.getElementById("finding-panel");
+const chartPanel = document.getElementById("chart-panel");
+const chartToggle = document.getElementById("toggle-chart");
+const number = new Intl.NumberFormat("en").format;
+const WORKER_URL = typeof BLUEPENCIL_WORKER_URL === "string" ? BLUEPENCIL_WORKER_URL : "./analysis-worker.js";
 
 const samples = {
   fiction: {
@@ -65,167 +68,354 @@ Mara turns toward the platform. A train whistle sounds somewhere beyond the dark
   },
 };
 
-const priority = { cliche: 90, "repeated-starter": 85, monotony: 80, "long-sentence": 75, passive: 70, filter: 60, hedge: 55, echo: 50, adverb: 40 };
-let ready = false;
-let current = [];
-let focus = [];
-let selectedRule = "focus";
+let worker;
+let revision = 0;
+let query = 0;
+let running = false;
+let summary;
+let viewport;
+let visible = [];
+let visibleCounts = {};
+let visibleResult;
+let detailItems = [];
+let detailIndex = 0;
+let replacing = false;
+let dirty = false;
+let fileRead = 0;
+let filename = "manuscript.md";
 let debounce;
+let frame;
+let lastViewportKey = "";
+let lastChartKey = "";
+let lastDrawer;
+const enabled = new Set(Object.keys(rules));
+const channels = { visible: { pending: false }, chart: { pending: false } };
+const toggleElements = [];
 
-function setMobilePanel(panel) {
-  workspace.dataset.mobilePanel = panel;
-  mobileTabs.forEach((tab, index) => {
-    const selected = (index === 0 ? "editor" : "results") === panel;
-    tab.setAttribute("aria-selected", String(selected));
-    tab.tabIndex = selected ? 0 : -1;
-  });
-}
+const chart = createChart({
+  request: () => { lastChartKey = ""; requestChart(); },
+  jump: (position) => editor.jump(position),
+});
+const editor = createEditor(source, samples.fiction.text, {
+  change: documentChanged,
+  viewport: () => scheduleViewport(),
+  inspect: (position) => inspect(position),
+  close: () => closeFinding(),
+});
 
-function setTab(index) {
-  tabs.forEach((tab, at) => {
-    tab.setAttribute("aria-selected", String(at === index));
-    tab.tabIndex = at === index ? 0 : -1;
-    panels[at].hidden = at !== index;
-  });
-}
-
-function selectText(item) {
-  if (compactLayout.matches) setMobilePanel("editor");
-  source.focus();
-  source.setSelectionRange(item.start, item.end);
-}
-
-function visibleIndices() {
-  if (selectedRule === "focus") return focus;
-  return current.map((item, index) => index).filter((index) => selectedRule === "all" || current[index].rule === selectedRule);
-}
-
-function showFinding(item, index) {
-  const li = document.createElement("li");
-  const action = document.createElement("button");
-  action.type = "button";
-  action.dataset.index = String(index);
-  action.setAttribute("aria-label", `${item.rule}, line ${item.line}, column ${item.column}: ${item.message}. Jump to text.`);
-  const top = document.createElement("span");
-  top.className = "finding-top";
-  const location = document.createElement("span");
-  location.className = "location";
-  location.textContent = `${String(item.line).padStart(2, "0")}:${String(item.column).padStart(2, "0")}`;
-  const rule = document.createElement("span");
-  rule.className = "rule";
-  rule.textContent = item.rule.replaceAll("-", " ");
-  const message = document.createElement("span");
-  message.className = "message";
-  message.textContent = item.message;
-  const excerpt = document.createElement("span");
-  excerpt.className = "excerpt";
-  excerpt.textContent = item.excerpt;
-  top.append(location, rule);
-  action.append(top, message, excerpt);
-  action.addEventListener("click", () => selectText(item));
-  li.append(action);
-  findings.append(li);
-}
-
-function renderFindings() {
-  findings.replaceChildren();
-  for (const index of visibleIndices()) showFinding(current[index], index);
-  const patterns = new Set(current.map((item) => item.rule)).size;
-  status.textContent = current.length
-    ? compactLayout.matches
-      ? `${current.length} observations · ${patterns} patterns`
-      : `${current.length} observation${current.length === 1 ? "" : "s"} across ${patterns} patterns. Start with the focused set or explore every line.`
-    : source.value.trim() ? "Nothing stands out in this passage. Try a longer sample." : "Write or open a passage to begin.";
-}
-
-function renderFilters() {
-  filterBar.replaceChildren();
-  const rules = [...new Set(current.map((item) => item.rule))];
-  if (selectedRule !== "focus" && selectedRule !== "all" && !rules.includes(selectedRule)) selectedRule = "focus";
-  filterBar.hidden = !current.length;
-  for (const value of ["focus", "all", ...rules]) {
-    const control = document.createElement("button");
-    control.type = "button";
-    const count = value === "focus" ? focus.length : value === "all" ? current.length : current.filter((item) => item.rule === value).length;
-    control.textContent = `${value === "focus" ? "Start here" : value.replaceAll("-", " ")} ${count}`;
-    control.setAttribute("aria-pressed", String(selectedRule === value));
-    control.addEventListener("click", () => {
-      selectedRule = value;
-      renderFilters();
-      renderFindings();
-    });
-    filterBar.append(control);
-  }
-}
-
-function renderAnnotated() {
-  annotated.replaceChildren();
-  const text = source.value;
-  const valid = current.map((item, index) => ({ ...item, index })).filter((item) => Number.isInteger(item.start) && Number.isInteger(item.end) && item.start >= 0 && item.start < item.end && item.end <= text.length);
-  const offsets = [...new Set([0, text.length, ...valid.flatMap((item) => [item.start, item.end])])].sort((a, b) => a - b);
-  for (let at = 0; at < offsets.length - 1; at++) {
-    const start = offsets[at];
-    const end = offsets[at + 1];
-    const segment = text.slice(start, end);
-    const match = valid.filter((item) => item.start <= start && item.end >= end).sort((a, b) => (priority[b.rule] || 0) - (priority[a.rule] || 0))[0];
-    if (!match) {
-      annotated.append(document.createTextNode(segment));
-      continue;
+function setDrawer(panel, open) {
+  if (open) {
+    lastDrawer = panel;
+    if (matchMedia("(max-width: 780px), (max-height: 650px)").matches) {
+      const other = panel === chartPanel ? findingPanel : chartPanel;
+      if (other.dataset.open === "true") setDrawer(other, false);
     }
-    const mark = document.createElement("button");
-    mark.type = "button";
-    mark.className = "marked-token";
-    mark.textContent = segment;
-    mark.setAttribute("aria-label", `${segment.trim() || "Marked passage"}: ${match.message}`);
-    mark.title = match.message;
-    mark.addEventListener("click", () => {
-      selectedRule = "all";
-      setTab(0);
-      renderFilters();
-      renderFindings();
-      const target = [...findings.querySelectorAll("button[data-index]")].find((item) => item.dataset.index === String(match.index));
-      target?.scrollIntoView({ block: "nearest" });
-      target?.focus();
+  }
+  panel.dataset.open = String(open);
+  panel.setAttribute("aria-hidden", String(!open));
+  panel.inert = !open;
+  if (panel === chartPanel) {
+    chartToggle.setAttribute("aria-expanded", String(open));
+    chartToggle.textContent = open ? "Hide chart ⌄" : "Analysis chart ⌃";
+  }
+  scheduleViewport();
+}
+
+function closeFinding() {
+  const open = findingPanel.dataset.open === "true";
+  setDrawer(findingPanel, false);
+  return open;
+}
+
+function showDetails(items, index = 0) {
+  if (!items.length) return false;
+  detailItems = items;
+  detailIndex = (index + items.length) % items.length;
+  const item = items[detailIndex];
+  const detail = rules[item.rule];
+  const group = groupFor(item.rule);
+  const category = document.getElementById("finding-category");
+  category.textContent = `${detail?.label || item.rule} · line ${number(item.line)}, column ${item.column}`;
+  category.style.color = group?.color || "";
+  document.getElementById("finding-heading").textContent = item.message;
+  document.getElementById("finding-excerpt").textContent = item.excerpt;
+  document.getElementById("finding-explanation").textContent = detail?.why || "An observation to consider in context.";
+  const overlap = document.getElementById("finding-overlap");
+  overlap.replaceChildren();
+  if (items.length > 1) {
+    items.forEach((finding, at) => {
+      const control = document.createElement("button");
+      control.type = "button";
+      control.textContent = rules[finding.rule]?.label || finding.rule;
+      control.setAttribute("aria-pressed", String(at === detailIndex));
+      control.addEventListener("click", () => showDetails(items, at));
+      overlap.append(control);
     });
-    annotated.append(mark);
+  }
+  document.getElementById("previous-finding").disabled = visible.length < 2;
+  document.getElementById("next-finding").disabled = visible.length < 2;
+  setDrawer(findingPanel, true);
+  return true;
+}
+
+function inspect(position, nearest = false) {
+  const matches = visible.filter((item) => item.start <= position && position <= item.end).sort((a, b) => b.priority - a.priority);
+  if (matches.length) return showDetails(matches);
+  if (!nearest || !visible.length) return false;
+  const item = visible.reduce((best, candidate) => Math.abs(candidate.start - position) < Math.abs(best.start - position) ? candidate : best);
+  editor.jump(item.start, item.end);
+  return showDetails([item]);
+}
+
+function stepFinding(direction) {
+  if (!visible.length) return;
+  const current = detailItems[detailIndex];
+  let index = visible.findIndex((item) => current && item.rule === current.rule && item.start === current.start && item.end === current.end);
+  index = (index + direction + visible.length) % visible.length;
+  const item = visible[index];
+  editor.jump(item.start, item.end);
+  showDetails([item]);
+}
+
+function buildToggles() {
+  const container = document.getElementById("finding-toggles");
+  for (const group of groups) {
+    const details = document.createElement("details");
+    details.className = "finding-group";
+    details.dataset.group = group.id;
+    details.style.setProperty("--finding-color", group.color);
+    const title = document.createElement("summary");
+    const swatch = document.createElement("span");
+    swatch.className = "swatch";
+    swatch.setAttribute("aria-hidden", "true");
+    const count = document.createElement("span");
+    count.className = "group-count";
+    title.append(swatch, document.createTextNode(group.label), count);
+    const popover = document.createElement("div");
+    popover.className = "rule-popover";
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "text-button group-action";
+    action.addEventListener("click", () => {
+      const hide = group.rules.some((rule) => enabled.has(rule));
+      for (const rule of group.rules) { if (hide) enabled.delete(rule); else enabled.add(rule); }
+      filtersChanged();
+    });
+    popover.append(action);
+    for (const rule of group.rules) {
+      const label = document.createElement("label");
+      label.className = "rule-option";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = true;
+      checkbox.dataset.rule = rule;
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) enabled.add(rule); else enabled.delete(rule);
+        filtersChanged();
+      });
+      const count = document.createElement("span");
+      count.className = "rule-count";
+      count.dataset.ruleCount = rule;
+      label.append(checkbox, document.createTextNode(rules[rule].plural), count);
+      popover.append(label);
+    }
+    details.append(title, popover);
+    details.addEventListener("toggle", () => {
+      if (!details.open) return;
+      for (const other of toggleElements) if (other.details !== details) other.details.open = false;
+      const rect = title.getBoundingClientRect();
+      popover.style.setProperty("--popover-top", `${rect.bottom + 7}px`);
+      popover.style.setProperty("--popover-left", `${Math.max(12, Math.min(rect.left, innerWidth - 282))}px`);
+    });
+    toggleElements.push({ details, count, action, group });
+    container.append(details);
+  }
+  updateToggleCounts();
+}
+
+function updateToggleCounts() {
+  for (const { details, count, action, group } of toggleElements) {
+    const any = group.rules.some((rule) => enabled.has(rule));
+    details.dataset.enabled = String(any);
+    count.textContent = String(group.rules.reduce((sum, rule) => sum + (enabled.has(rule) ? visibleCounts[rule] || 0 : 0), 0));
+    action.textContent = any ? `Hide all ${group.label.toLowerCase()} findings` : `Show all ${group.label.toLowerCase()} findings`;
+  }
+  for (const checkbox of document.querySelectorAll("input[data-rule]")) checkbox.checked = enabled.has(checkbox.dataset.rule);
+  for (const count of document.querySelectorAll("[data-rule-count]")) count.textContent = number(visibleCounts[count.dataset.ruleCount] || 0);
+}
+
+function filtersChanged() {
+  visible = visible.filter((item) => enabled.has(item.rule));
+  editor.highlight(visible);
+  updateToggleCounts();
+  lastViewportKey = "";
+  scheduleViewport();
+}
+
+function queueRequest(type, payload) {
+  if (!worker || !summary) return;
+  const channel = channels[type];
+  const message = { type, id: revision, query: ++query, ...payload };
+  channel.latest = message.query;
+  if (channel.pending) channel.queued = message;
+  else {
+    channel.pending = true;
+    worker.postMessage(message);
   }
 }
 
-function chooseFocus() {
-  const ranked = current.map((item, index) => index).sort((a, b) => (priority[current[b].rule] || 0) - (priority[current[a].rule] || 0) || current[a].start - current[b].start);
-  const seen = new Set();
-  const picks = [];
-  for (const index of ranked) {
-    if (seen.has(current[index].rule)) continue;
-    seen.add(current[index].rule);
-    picks.push(index);
-    if (picks.length === 6) break;
+function finishRequest(type, data, apply) {
+  const channel = channels[type];
+  channel.pending = false;
+  if (data.query === channel.latest) apply();
+  if (channel.queued && worker) {
+    const queued = channel.queued;
+    channel.queued = undefined;
+    channel.pending = true;
+    worker.postMessage(queued);
   }
-  focus = picks;
+}
+
+function scheduleViewport() {
+  if (frame) return;
+  frame = requestAnimationFrame(() => {
+    frame = undefined;
+    viewport = editor.range();
+    chart.viewport(viewport);
+    if (!summary || !worker) return;
+    const key = `${revision}:${viewport.from}:${viewport.to}:${[...enabled].join(",")}`;
+    if (key !== lastViewportKey) {
+      lastViewportKey = key;
+      queueRequest("visible", { from: viewport.from, to: viewport.to, enabled: [...enabled] });
+    } else if (visibleResult) renderViewportStatus();
+    requestChart();
+  });
+}
+
+function requestChart() {
+  if (!summary || !worker || chartPanel.dataset.open !== "true") return;
+  if (!viewport) { scheduleViewport(); return; }
+  const from = chart.scope() === "whole" ? 0 : viewport.from;
+  const to = chart.scope() === "whole" ? summary.length : viewport.to;
+  const interval = chart.interval();
+  const key = `${revision}:${chart.scope()}:${from}:${to}:${interval}`;
+  if (key === lastChartKey) return;
+  lastChartKey = key;
+  queueRequest("chart", { from, to, interval });
+}
+
+function applyVisible(result) {
+  visibleResult = result;
+  visible = result.findings;
+  visibleCounts = result.rule_counts;
+  editor.highlight(visible);
+  updateToggleCounts();
+  renderViewportStatus();
+}
+
+function renderViewportStatus() {
+  const result = visibleResult;
+  const lines = `lines ${number(viewport.fromLine)}–${number(viewport.toLine)} + buffer`;
+  status.textContent = result.total
+    ? `${number(result.total)} observations near this passage · ${lines}${result.truncated ? " · showing the first 1,000" : ""}`
+    : `${enabled.size ? "No observations" : "Highlights hidden"} near this passage · ${lines}`;
+  status.title = status.textContent;
+}
+
+function stopWorker() {
+  worker?.terminate();
+  worker = undefined;
+  running = false;
+  button.disabled = false;
+  cancelButton.hidden = true;
+  for (const channel of Object.values(channels)) { channel.pending = false; channel.queued = undefined; }
+}
+
+function clearAnalysis(message, clearHighlights = true) {
+  summary = undefined;
+  visible = [];
+  visibleCounts = {};
+  visibleResult = undefined;
+  lastViewportKey = "";
+  lastChartKey = "";
+  stats.textContent = "";
+  status.textContent = message;
+  if (clearHighlights) editor.highlight([]);
+  chart.clear();
+  updateToggleCounts();
+  closeFinding();
+}
+
+function showError(message) {
+  notice.dataset.kind = "error";
+  notice.hidden = false;
+  noticeMessage.textContent = message;
+  progress.hidden = true;
+  cancelButton.hidden = !running;
 }
 
 function run() {
-  if (!ready) return;
+  clearTimeout(debounce);
+  stopWorker();
+  const id = ++revision;
+  clearAnalysis("Analyzing your manuscript…");
+  notice.hidden = true;
+  const text = editor.text();
+  if (!text.trim()) { status.textContent = "Write, paste, or open your manuscript to begin."; return; }
+  if (new TextEncoder().encode(text).length > MAX_INPUT_BYTES) {
+    showError("This manuscript exceeds the 16 MiB browser limit. Open a smaller document or use the CLI.");
+    return;
+  }
   try {
-    const result = JSON.parse(analyze(source.value, format.value));
-    current = result.findings;
-    chooseFocus();
-    stats.textContent = `${result.words} words · ${result.sentences} sentences`;
-    mobileCount.textContent = String(current.length);
-    mobileCount.hidden = current.length === 0;
-    renderFilters();
-    renderFindings();
-    renderAnnotated();
-    if (result.truncated) status.textContent += " Showing the first 150; use the CLI for a full report.";
-  } catch (error) {
-    current = [];
-    focus = [];
-    findings.replaceChildren();
-    annotated.replaceChildren();
-    filterBar.hidden = true;
-    stats.textContent = "";
-    mobileCount.hidden = true;
-    status.textContent = String(error);
+    worker = new Worker(new URL(WORKER_URL, import.meta.url), { type: "module" });
+    const active = worker;
+    running = true;
+    button.disabled = true;
+    notice.dataset.kind = "progress";
+    notice.hidden = false;
+    noticeMessage.textContent = "Preparing your manuscript…";
+    progress.hidden = false;
+    progress.value = 0;
+    cancelButton.hidden = false;
+    worker.onmessage = ({ data }) => {
+      if (worker !== active || data.id !== revision) return;
+      if (data.type === "progress") {
+        if (notice.dataset.kind === "error") return;
+        noticeMessage.textContent = data.message;
+        progress.max = data.total;
+        progress.value = data.completed;
+      } else if (data.type === "complete") {
+        running = false;
+        button.disabled = false;
+        cancelButton.hidden = true;
+        if (notice.dataset.kind === "progress") notice.hidden = true;
+        summary = data.summary;
+        stats.textContent = `${number(summary.words)} words · ${number(summary.total_findings)} observations`;
+        scheduleViewport();
+      } else if (data.type === "visible") {
+        finishRequest("visible", data, () => applyVisible(data.result));
+      } else if (data.type === "chart") {
+        finishRequest("chart", data, () => chart.update(data.result));
+      } else if (data.type === "error") {
+        if (data.request) finishRequest(data.request, data, () => showError(data.message));
+        else {
+          stopWorker();
+          clearAnalysis("Your text is still in the editor.");
+          showError(data.message);
+        }
+      }
+    };
+    worker.onerror = (event) => {
+      if (worker !== active) return;
+      event.preventDefault();
+      stopWorker();
+      clearAnalysis("Your text is still in the editor.");
+      showError("The local analysis engine could not finish. Try again or reload the page.");
+    };
+    worker.postMessage({ type: "analyze", id, text, format: format.value });
+  } catch {
+    stopWorker();
+    showError("The local analysis engine could not start. Try reloading this page in a current browser.");
   }
 }
 
@@ -233,123 +423,133 @@ function clearSampleSelection() {
   for (const control of document.querySelectorAll(".sample-choice")) control.setAttribute("aria-pressed", "false");
 }
 
+function documentChanged() {
+  dirty = true;
+  if (replacing) return;
+  clearSampleSelection();
+  clearTimeout(debounce);
+  stopWorker();
+  revision++;
+  notice.hidden = true;
+  clearAnalysis("Waiting for you to finish typing…", false);
+  debounce = setTimeout(run, editor.length() > 100_000 ? 1000 : 350);
+}
+
+function replaceDocument(text, nextFormat) {
+  replacing = true;
+  editor.replace(text);
+  replacing = false;
+  format.value = nextFormat;
+  run();
+  editor.jump(0);
+}
+
 async function openFile(file) {
   if (!file) return;
+  const reading = ++fileRead;
   if (!/\.(md|markdown|mdx|txt|fountain|spmd)$/i.test(file.name)) {
-    status.textContent = "Open a Markdown, Fountain, or plain text file here. Use the CLI for other writing app formats.";
+    showError("Open a Markdown, Fountain, or plain text file here. Use the CLI for other writing app formats.");
     return;
   }
-  if (file.size > 100_000) {
-    status.textContent = "This file exceeds the 100 KB playground limit. Use the CLI for longer manuscripts.";
+  if (file.size > MAX_INPUT_BYTES) {
+    showError("This file exceeds the 16 MiB browser limit. Open a smaller document or use the CLI.");
     return;
   }
+  clearTimeout(debounce);
+  const originalRevision = revision;
   try {
     const text = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
+    if (reading !== fileRead || originalRevision !== revision) return;
     if (text.includes("\0")) throw new Error("This file does not appear to be plain text.");
-    source.value = text;
-    format.value = /\.(fountain|spmd)$/i.test(file.name) ? "fountain" : /\.txt$/i.test(file.name) ? "plain" : "markdown";
-    selectedRule = "focus";
+    filename = file.name;
     clearSampleSelection();
-    if (compactLayout.matches) setMobilePanel("editor");
-    run();
+    replaceDocument(text, /\.(fountain|spmd)$/i.test(file.name) ? "fountain" : /\.txt$/i.test(file.name) ? "plain" : "markdown");
   } catch (error) {
-    status.textContent = error instanceof TypeError ? "This file is not UTF-8 text." : String(error);
+    if (reading !== fileRead || originalRevision !== revision) return;
+    showError(error instanceof TypeError ? "This file is not UTF-8 text." : String(error));
   }
 }
 
-source.addEventListener("input", () => {
-  clearSampleSelection();
-  clearTimeout(debounce);
-  debounce = setTimeout(run, 350);
-});
-compactLayout.addEventListener("change", renderFindings);
+buildToggles();
+button.addEventListener("click", run);
 format.addEventListener("change", run);
-button.addEventListener("click", () => {
+cancelButton.addEventListener("click", () => {
   clearTimeout(debounce);
-  run();
-  if (compactLayout.matches) setMobilePanel("results");
+  stopWorker();
+  revision++;
+  notice.hidden = true;
+  clearAnalysis("Analysis cancelled. Select Analyze to try again.");
 });
-for (const control of document.querySelectorAll(".sample-choice")) {
-  control.addEventListener("click", () => {
-    const sample = samples[control.dataset.sample];
-    source.value = sample.text;
-    format.value = sample.format;
-    selectedRule = "focus";
-    clearSampleSelection();
-    control.setAttribute("aria-pressed", "true");
-    if (compactLayout.matches) setMobilePanel("editor");
-    run();
-  });
-}
-document.getElementById("clear").addEventListener("click", () => {
-  source.value = "";
-  selectedRule = "focus";
+document.getElementById("close-finding").addEventListener("click", () => { closeFinding(); editor.view.focus(); });
+document.getElementById("previous-finding").addEventListener("click", () => stepFinding(-1));
+document.getElementById("next-finding").addEventListener("click", () => stepFinding(1));
+document.getElementById("inspect-finding").addEventListener("click", () => inspect(editor.view.state.selection.main.head, true));
+document.getElementById("jump-to-finding").addEventListener("click", () => {
+  const item = detailItems[detailIndex];
+  if (item) editor.jump(item.start, item.end);
+});
+chartToggle.addEventListener("click", () => {
+  const open = chartPanel.dataset.open !== "true";
+  setDrawer(chartPanel, open);
+  requestChart();
+});
+document.getElementById("close-chart").addEventListener("click", () => {
+  setDrawer(chartPanel, false);
+  chartToggle.focus();
+});
+for (const panel of [findingPanel, chartPanel]) panel.addEventListener("transitionend", () => scheduleViewport());
+for (const control of document.querySelectorAll(".sample-choice")) control.addEventListener("click", () => {
+  const sample = samples[control.dataset.sample];
   clearSampleSelection();
-  if (compactLayout.matches) setMobilePanel("editor");
-  run();
-  source.focus();
+  control.setAttribute("aria-pressed", "true");
+  filename = sample.format === "fountain" ? "scene.fountain" : "passage.md";
+  replaceDocument(sample.text, sample.format);
 });
 document.getElementById("open-file").addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => {
-  openFile(fileInput.files?.[0]);
+  void openFile(fileInput.files?.[0]);
   fileInput.value = "";
 });
-dropZone.addEventListener("dragover", (event) => {
+document.getElementById("save-file").addEventListener("click", () => {
+  const url = URL.createObjectURL(new Blob([editor.text()], { type: "text/plain;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+editorWrap.addEventListener("dragover", (event) => {
   if (!event.dataTransfer?.types.includes("Files")) return;
   event.preventDefault();
-  dropZone.classList.add("dragging");
+  dropHint.hidden = false;
 });
-dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragging"));
-dropZone.addEventListener("drop", (event) => {
+editorWrap.addEventListener("dragleave", (event) => {
+  if (!editorWrap.contains(event.relatedTarget)) dropHint.hidden = true;
+});
+editorWrap.addEventListener("drop", (event) => {
+  if (!event.dataTransfer?.files.length) return;
   event.preventDefault();
-  dropZone.classList.remove("dragging");
-  if (event.dataTransfer.files.length !== 1) {
-    status.textContent = "Open one text file at a time.";
-    return;
+  event.stopPropagation();
+  dropHint.hidden = true;
+  if (event.dataTransfer.files.length !== 1) { showError("Open one text file at a time."); return; }
+  void openFile(event.dataTransfer.files[0]);
+}, true);
+document.addEventListener("click", (event) => {
+  for (const { details } of toggleElements) if (!details.contains(event.target)) details.open = false;
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  for (const { details } of toggleElements) details.open = false;
+});
+window.addEventListener("resize", () => {
+  if (findingPanel.dataset.open === "true" && chartPanel.dataset.open === "true" && matchMedia("(max-width: 780px), (max-height: 650px)").matches) {
+    setDrawer(lastDrawer === findingPanel ? chartPanel : findingPanel, false);
   }
-  openFile(event.dataTransfer.files[0]);
+  scheduleViewport();
 });
-tabs.forEach((tab, index) => {
-  tab.addEventListener("click", () => setTab(index));
-  tab.addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    event.preventDefault();
-    const next = (index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
-    setTab(next);
-    tabs[next].focus();
-  });
+window.addEventListener("beforeunload", (event) => {
+  if (!dirty) return;
+  event.preventDefault();
+  event.returnValue = "";
 });
-mobileTabs.forEach((tab, index) => {
-  tab.addEventListener("click", () => setMobilePanel(index === 0 ? "editor" : "results"));
-  tab.addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    event.preventDefault();
-    const next = (index + (event.key === "ArrowRight" ? 1 : mobileTabs.length - 1)) % mobileTabs.length;
-    setMobilePanel(next === 0 ? "editor" : "results");
-    mobileTabs[next].focus();
-  });
-});
-document.getElementById("copy-findings").addEventListener("click", async () => {
-  if (!current.length) {
-    status.textContent = "There are no findings to copy yet.";
-    return;
-  }
-  const text = current.map((item) => `${item.line}:${item.column}  ${item.rule}  ${item.message}\n    ${item.excerpt}`).join("\n");
-  try {
-    await navigator.clipboard.writeText(text);
-    status.textContent = `Copied ${current.length} findings to the clipboard.`;
-  } catch {
-    status.textContent = "Clipboard access was unavailable. Select and copy individual findings instead.";
-  }
-});
-
-source.value = samples.fiction.text;
-button.disabled = true;
-try {
-  await init();
-  ready = true;
-  button.disabled = false;
-  run();
-} catch {
-  status.textContent = "The local analysis engine could not load. Reload this page to try again.";
-}
+run();

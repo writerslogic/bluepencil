@@ -6,6 +6,7 @@
 
 - [Installation](installation.md)
 - [Quick start](quickstart.md)
+- [Browser writing desk](browser.md)
 - [Configuration](configuration.md)
 - [Input formats](formats.md)
 - [A first revision pass](demo.md)

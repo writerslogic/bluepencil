@@ -29,6 +29,20 @@ just demo     # run the report on the sample novel
 
 Add tests for logic that is genuinely tricky, such as tokenizing and sentence boundaries. Keep them focused.
 
+## Browser writing desk
+
+The browser uses the Rust WebAssembly engine and a bundled CodeMirror editor. The build versions the stylesheet, application, worker, and engine assets together so cached files cannot mix incompatible builds. Install the browser dependencies before building the site, then run its integration checks:
+
+```sh
+npm --prefix docs/playground ci
+bash scripts/build-pages.sh
+cd docs/playground
+npx playwright install chromium
+npm test
+```
+
+The checks serve the built site locally and exercise large documents, inline highlights, scrolling, charts, cancellation, editing, and import errors. To check WebKit as well, run `npx playwright install webkit` and `BLUEPENCIL_BROWSER=webkit npm test` from `docs/playground`. Rust rule and chart-value regression tests run with `cargo test -p bluepencil-web -p bluepencil-core` from the repository root.
+
 ## Fuzzing
 
 The parsers (`crates/bluepencil-core/src/parse/`) handle arbitrary user files, so they're

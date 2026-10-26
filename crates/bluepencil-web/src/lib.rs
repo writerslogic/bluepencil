@@ -1,95 +1,50 @@
-use bluepencil_core::analysis::{
-    adverbs, cliches, counts::Counts, echoes, filter_words, hedges, passive, rhythm, starters,
-};
-use bluepencil_core::lexicon::WordSet;
-use bluepencil_core::{Document, Finding, Format, Lexicons};
-use serde::Serialize;
+mod manuscript;
+
+use manuscript::{BROWSER_INPUT_BYTES, BrowserManuscript, parse_format};
 use wasm_bindgen::prelude::*;
 
-const MAX_INPUT_BYTES: usize = 100_000;
-const MAX_FINDINGS: usize = 150;
-
-#[derive(Serialize)]
-struct FindingView {
-    rule: String,
-    message: String,
-    excerpt: String,
-    line: usize,
-    column: usize,
-    start: usize,
-    end: usize,
+#[wasm_bindgen]
+pub struct Manuscript {
+    inner: BrowserManuscript,
 }
 
-#[derive(Serialize)]
-struct Analysis {
-    words: usize,
-    sentences: usize,
-    paragraphs: usize,
-    findings: Vec<FindingView>,
-    truncated: bool,
-}
-
-fn view(doc: &Document, finding: &Finding) -> FindingView {
-    let pos = doc.position(finding.span.start);
-    let sentence = doc
-        .sentences()
-        .find(|s| s.span.start <= finding.span.start && finding.span.start < s.span.end)
-        .map_or(finding.span, |s| s.span);
-    FindingView {
-        rule: finding.rule.to_string(),
-        message: finding.message.clone(),
-        excerpt: sentence.slice(&doc.source).split_whitespace().collect::<Vec<_>>().join(" "),
-        line: pos.line,
-        column: pos.column,
-        start: doc.source[..finding.span.start].encode_utf16().count(),
-        end: doc.source[..finding.span.end].encode_utf16().count(),
+#[wasm_bindgen]
+impl Manuscript {
+    #[wasm_bindgen(constructor)]
+    pub fn new(source: &str, format: &str) -> Result<Manuscript, JsValue> {
+        let format = parse_format(format).map_err(js_error)?;
+        let inner = BrowserManuscript::new(source, format, BROWSER_INPUT_BYTES).map_err(js_error)?;
+        Ok(Self { inner })
     }
-}
 
-#[cfg(test)]
-fn analyze_text(source: &str, format: Format) -> Result<Analysis, String> {
-    analyze_text_with_limit(source, format, MAX_INPUT_BYTES)
-}
+    pub fn stages(&self) -> usize {
+        BrowserManuscript::STAGES.len()
+    }
 
-fn analyze_text_with_limit(source: &str, format: Format, max_bytes: usize) -> Result<Analysis, String> {
-    if source.len() > max_bytes {
-        return Err(format!(
-            "This document exceeds the {max_bytes}-byte analysis limit; use the CLI for full manuscripts."
-        ));
+    pub fn next_stage(&self) -> String {
+        self.inner.next_stage().to_string()
     }
-    let doc = Document::parse("Your sample", source, format);
-    let lex = Lexicons::default();
-    let mut findings = Vec::new();
-    for echo in echoes::echoes(&doc, &lex, 50, 4, &WordSet::default(), false) {
-        findings.push(Finding {
-            rule: "echo",
-            message: format!("\"{}\" repeats {} words later", echo.word, echo.distance),
-            span: echo.second,
-        });
+
+    pub fn advance(&mut self) {
+        self.inner.advance();
     }
-    findings.extend(cliches::find(&doc, &lex));
-    findings.extend(starters::starters(&doc, 3).findings);
-    findings.extend(rhythm::rhythm(&doc, 4, 3, 40).findings);
-    findings.extend(passive::find(&doc, &lex));
-    findings.extend(filter_words::find(&doc, &lex));
-    findings.extend(hedges::find(&doc, &lex));
-    findings.extend(adverbs::find(&doc, &lex));
-    findings.sort_by_key(|f| (f.span.start, f.span.end));
-    let truncated = findings.len() > MAX_FINDINGS;
-    let findings = findings.iter().take(MAX_FINDINGS).map(|f| view(&doc, f)).collect();
-    let counts = Counts::of(&doc);
-    Ok(Analysis {
-        words: counts.words,
-        sentences: counts.sentences,
-        paragraphs: counts.paragraphs,
-        findings,
-        truncated,
-    })
+
+    pub fn summary(&self) -> Result<String, JsValue> {
+        serialize(&self.inner.summary().map_err(js_error)?)
+    }
+
+    pub fn visible(&self, from: usize, to: usize, enabled: &str) -> Result<String, JsValue> {
+        serialize(&self.inner.visible(from, to, enabled).map_err(js_error)?)
+    }
+
+    pub fn chart(&self, from: usize, to: usize, interval: usize) -> Result<String, JsValue> {
+        serialize(&self.inner.chart(from, to, interval).map_err(js_error)?)
+    }
 }
 
 #[wasm_bindgen]
 pub fn analyze(source: &str, format: &str) -> Result<String, JsValue> {
-    analyze_with_limit(source, format, MAX_INPUT_BYTES)
+    analyze_with_limit(source, format, BROWSER_INPUT_BYTES)
 }
 
 #[wasm_bindgen]
@@ -98,34 +53,18 @@ pub fn analyze_full(source: &str, format: &str) -> Result<String, JsValue> {
 }
 
 fn analyze_with_limit(source: &str, format: &str, max_bytes: usize) -> Result<String, JsValue> {
-    let format = match format {
-        "markdown" => Format::Markdown,
-        "fountain" => Format::Fountain,
-        "plain" => Format::Plain,
-        _ => return Err(JsValue::from_str("Choose Markdown, Fountain, or plain text.")),
-    };
-    let result = analyze_text_with_limit(source, format, max_bytes).map_err(|message| JsValue::from_str(&message))?;
-    serde_json::to_string(&result).map_err(|_| JsValue::from_str("Could not serialize the analysis."))
+    let format = parse_format(format).map_err(js_error)?;
+    let mut manuscript = BrowserManuscript::new(source, format, max_bytes).map_err(js_error)?;
+    while !manuscript.is_finished() {
+        manuscript.advance();
+    }
+    serialize(&manuscript.legacy_analysis())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn serialize(value: &impl serde::Serialize) -> Result<String, JsValue> {
+    serde_json::to_string(value).map_err(|_| js_error("Could not prepare the analysis results."))
+}
 
-    #[test]
-    fn returns_source_locations_after_unicode() {
-        let source = "🌊 The gravel was cold. The gravel was very cold.";
-        let result = analyze_text(source, Format::Plain).unwrap();
-        let echo = result.findings.iter().find(|f| f.rule == "echo" && f.message.contains("gravel")).unwrap();
-        assert_eq!(echo.line, 1);
-        assert_eq!(&source["🌊 The gravel was cold. The ".len()..][..6], "gravel");
-        assert_eq!(echo.start, 28);
-    }
-
-    #[test]
-    fn refuses_oversized_input() {
-        assert!(analyze_text(&"a".repeat(MAX_INPUT_BYTES - 1), Format::Plain).is_ok());
-        assert!(analyze_text(&"a".repeat(MAX_INPUT_BYTES), Format::Plain).is_ok());
-        assert!(analyze_text(&"a".repeat(MAX_INPUT_BYTES + 1), Format::Plain).is_err());
-    }
+fn js_error(message: impl AsRef<str>) -> JsValue {
+    JsValue::from_str(message.as_ref())
 }

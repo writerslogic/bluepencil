@@ -38,11 +38,14 @@ pub fn attributions(doc: &Document, lex: &Lexicons) -> Vec<Attribution> {
     let names = proper_nouns(doc);
     let mut out = Vec::new();
     for p in &doc.paragraphs {
+        let first = doc.dialogue.partition_point(|dialogue| dialogue.start < p.span.start);
+        let dialogue = doc.dialogue[first..].iter().take_while(|dialogue| dialogue.end <= p.span.end);
+        if dialogue.clone().next().is_none() {
+            continue;
+        }
         let words: Vec<&Word> = p.sentences.iter().flat_map(|s| &s.words).collect();
-        for dlg in &doc.dialogue {
-            if p.span.contains(*dlg) {
-                out.push(attribution_for(*dlg, &words, lex, &names));
-            }
+        for dlg in dialogue {
+            out.push(attribution_for(*dlg, &words, lex, &names));
         }
     }
     out
@@ -132,5 +135,16 @@ mod tests {
         let a = attributions(&d, &lex);
         assert!(a[0].tag.is_none());
         assert!(a[0].speaker.is_none());
+    }
+
+    #[test]
+    fn keeps_dialogue_and_tags_in_their_own_paragraphs() {
+        let lex = Lexicons::default();
+        let d = doc("Mara snapped.\n\n\"Enough.\"\n\n\"Wait,\" she said softly.\n\nThe door closed.");
+        let a = attributions(&d, &lex);
+        assert_eq!(a.len(), 2);
+        assert!(a[0].tag.is_none());
+        assert_eq!(a[1].kind, Some(TagKind::Plain));
+        assert!(a[1].adverb);
     }
 }

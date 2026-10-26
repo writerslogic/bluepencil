@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101923">
   <meta name="author" content="WritersLogic, Inc.">
-  <meta name="description" content="Find repeated words, distracting patterns, and prose worth revisiting. Try bluepencil in your browser; your writing stays on your device.">
+  <meta name="description" content="A private manuscript editor with local prose analysis, inline findings, and a view of your story’s rhythm. Free and open source.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="bluepencil by WritersLogic">
   <meta property="og:title" content="bluepencil — find the lines worth revising">
-  <meta property="og:description" content="A private, local prose analysis playground for writers. Paste a passage and see what stands out.">
+  <meta property="og:description" content="Explore your manuscript with inline observations and a view of its rhythm. Your writing stays on your device.">
   <meta property="og:url" content="https://writerslogic.github.io/bluepencil/">
   <meta property="og:image" content="https://writerslogic.github.io/bluepencil/og-image.png">
   <meta property="og:image:width" content="1200">
@@ -20,44 +20,38 @@
   <link rel="icon" type="image/png" href="./logo.png">
   <link rel="preload" href="./fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="./fonts/source-serif-4.woff2" as="font" type="font/woff2" crossorigin>
-  <title>bluepencil — a private prose playground by WritersLogic</title>
+  <title>bluepencil — a private manuscript editor by WritersLogic</title>
   <link rel="stylesheet" href="./style.css">
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://writerslogic.com/#organization","name":"WritersLogic, Inc.","url":"https://writerslogic.com/"},{"@type":"SoftwareApplication","name":"bluepencil","applicationCategory":"WritingApplication","operatingSystem":"Web, macOS, Linux, Windows","url":"https://writerslogic.github.io/bluepencil/","codeRepository":"https://github.com/writerslogic/bluepencil","isAccessibleForFree":true,"publisher":{"@id":"https://writerslogic.com/#organization"}}]}</script>
 </head>
 <body>
-  <a class="skip" href="#source">Skip to editor</a>
+  <a class="skip" href="#source">Skip to manuscript</a>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand-group">
-        <a class="identity" href="./" aria-label="bluepencil home"><img class="mark" src="./logo.png" alt="" width="40" height="40"><span class="identity-stack"><span class="wordmark">bluepencil<span class="wordmark-dot">.</span></span><span class="mobile-parent">by WritersLogic</span></span></a>
-        <span class="brand-divider" aria-hidden="true"></span>
-        <a class="parent-brand" href="https://writerslogic.com/">A WritersLogic project <span aria-hidden="true">↗</span></a>
-      </div>
-      <nav class="header-actions" aria-label="Main navigation"><span class="privacy-pill"><span aria-hidden="true">●</span> Local analysis · No upload</span><span class="mobile-private"><span aria-hidden="true">●</span> Local</span><a class="guide-link" href="./docs/">Guide</a><a class="github-link" href="https://github.com/writerslogic/bluepencil"><span class="star-label">Star on GitHub</span><span class="mobile-github">GitHub</span> <span aria-hidden="true">↗</span></a></nav>
+      <a class="identity" href="./" aria-label="bluepencil home"><img class="mark" src="./logo.png" alt="" width="38" height="38"><span>bluepencil<span class="wordmark-dot">.</span></span></a>
+      <a class="parent-brand" href="https://writerslogic.com/">A WritersLogic project ↗</a>
+      <nav class="header-actions" aria-label="Main navigation"><span class="privacy-pill">● Local analysis · No upload</span><a href="./docs/">Guide</a><a class="github-link" href="https://github.com/writerslogic/bluepencil">GitHub ↗</a></nav>
     </header>
-
     <section class="deskbar" aria-labelledby="desk-title">
-      <div class="desk-title"><p class="eyebrow">THE WRITING DESK <span aria-hidden="true">/</span> BROWSER EDITION</p><h1 id="desk-title">Find the lines worth <em>another look.</em></h1></div>
-      <div class="sample-group" role="group" aria-label="Example passages"><span>TRY A SAMPLE</span><button class="sample-choice" type="button" data-sample="fiction" aria-pressed="true">Fiction passage</button><button class="sample-choice" type="button" data-sample="screenplay" aria-pressed="false">Screenplay scene</button></div>
+      <div><p class="eyebrow">THE WRITING DESK</p><h1 id="desk-title">Your words. <em>A closer look.</em></h1></div>
+      <div class="sample-group" role="group" aria-label="Example passages"><span>TRY A SAMPLE</span><button class="sample-choice" type="button" data-sample="fiction" aria-pressed="true">Fiction</button><button class="sample-choice" type="button" data-sample="screenplay" aria-pressed="false">Screenplay</button></div>
     </section>
-
-    <div class="mobile-panel-tabs" role="tablist" aria-label="Writing desk panels"><button id="mobile-editor" type="button" role="tab" aria-selected="true" aria-controls="editor-panel">Editor</button><button id="mobile-results" type="button" role="tab" aria-selected="false" aria-controls="results-panel" tabindex="-1">Findings <span id="mobile-count" hidden></span></button></div>
-
-    <main id="workspace" class="workspace" data-mobile-panel="editor" aria-label="Writing playground">
-      <section class="panel editor-panel" id="editor-panel" aria-label="Your passage">
-        <div class="panel-head"><div class="panel-title"><span class="panel-icon" aria-hidden="true">✎</span><h2>Your passage</h2></div><div class="controls"><label for="format">FORMAT</label><select id="format"><option value="markdown">Markdown</option><option value="plain">Plain text</option><option value="fountain">Fountain</option></select></div></div>
-        <div class="editor-wrap" id="drop-zone"><textarea id="source" spellcheck="false" aria-label="Passage to analyze" placeholder="Write, paste, or open a text file to begin…"></textarea><div class="drop-hint" aria-hidden="true">Drop a text file to read it here</div></div>
-        <div class="panel-foot"><div class="editor-actions"><input id="file-input" type="file" accept=".md,.markdown,.mdx,.txt,.fountain,.spmd,text/plain,text/markdown" hidden><button id="open-file" type="button" class="text-button">↗ &nbsp; Open file</button><button id="clear" type="button" class="text-button">Clear</button></div><button id="analyze" type="button" class="primary-button">See findings <span aria-hidden="true">→</span></button></div>
-      </section>
-
-      <section class="panel results-panel" id="results-panel" aria-label="Analysis results">
-        <div class="panel-head"><div class="panel-title"><span class="panel-icon blue" aria-hidden="true">◎</span><h2>What stands out</h2></div><span id="stats" class="stats" aria-live="polite"></span></div>
-        <div class="results-body"><p id="status" role="status">Loading the local analysis engine…</p><div class="view-tabs" role="tablist" aria-label="Result view"><button id="findings-tab" type="button" role="tab" aria-selected="true" aria-controls="findings-view">Findings</button><button id="annotated-tab" type="button" role="tab" aria-selected="false" aria-controls="annotated-view" tabindex="-1">Marked passage</button></div><div id="findings-view" role="tabpanel" aria-labelledby="findings-tab"><div id="filter-bar" class="filter-bar" role="group" aria-label="Filter findings" hidden></div><ol id="findings" aria-label="Findings"></ol></div><div id="annotated-view" role="tabpanel" aria-labelledby="annotated-tab" hidden><p class="marked-intro">Select a marked phrase to see its observation.</p><div id="annotated" aria-label="Passage with findings marked"></div></div></div>
-        <div class="results-foot"><span><span class="mini-mark" aria-hidden="true">✦</span> Observations, not instructions.</span><button id="copy-findings" type="button" class="text-button">Copy findings</button></div>
+    <div id="analysis-notice" class="analysis-notice" role="status" hidden><div><span id="analysis-message"></span><progress id="analysis-progress" max="7" value="0" aria-label="Analysis progress"></progress></div><button id="cancel-analysis" type="button" class="text-button">Cancel</button></div>
+    <main class="writing-desk" aria-label="Manuscript writing desk">
+      <div class="editor-toolbar">
+        <div id="finding-toggles" class="finding-toggles" aria-label="Finding types"></div>
+        <div class="editor-tools"><label class="sr-only" for="format">Manuscript format</label><select id="format"><option value="markdown">Markdown</option><option value="plain">Plain text</option><option value="fountain">Fountain</option></select><input id="file-input" type="file" accept=".md,.markdown,.mdx,.txt,.fountain,.spmd,text/plain,text/markdown" hidden><button id="open-file" type="button" class="text-button">Open file</button><button id="save-file" type="button" class="text-button">Download</button><button id="analyze" type="button" class="primary-button">Analyze</button></div>
+      </div>
+      <aside id="finding-panel" class="drawer finding-drawer" data-open="false" aria-labelledby="finding-heading" aria-hidden="true" inert>
+        <div class="drawer-inner"><div class="finding-content"><div class="drawer-head"><div><span id="finding-category" class="eyebrow"></span><h2 id="finding-heading">A closer look</h2></div><div class="drawer-actions"><button id="previous-finding" class="text-button" type="button" aria-label="Previous nearby finding">←</button><button id="next-finding" class="text-button" type="button" aria-label="Next nearby finding">→</button><button id="close-finding" class="icon-button" type="button" aria-label="Close finding details">×</button></div></div><div id="finding-overlap" class="finding-overlap" role="group" aria-label="Observations at this passage"></div><p id="finding-excerpt" class="finding-excerpt"></p><p id="finding-explanation" class="finding-explanation"></p><button id="jump-to-finding" class="text-button" type="button">Return to this passage ↗</button></div></div>
+      </aside>
+      <div id="editor-wrap" class="editor-wrap"><div id="source" tabindex="-1"></div><div id="drop-hint" class="drop-hint" hidden>Drop one text file to open it</div></div>
+      <div class="editor-status"><span id="viewport-summary" role="status">Preparing local analysis…</span><div><button id="inspect-finding" type="button" class="text-button" title="Inspect a nearby finding (Alt+Enter)">Inspect finding</button><span id="stats"></span><button id="toggle-chart" type="button" class="text-button chart-toggle" aria-expanded="false" aria-controls="chart-panel">Analysis chart ⌃</button></div></div>
+      <section id="chart-panel" class="drawer chart-drawer" data-open="false" aria-labelledby="chart-heading" aria-hidden="true" inert>
+        <div class="drawer-inner"><div class="chart-content"><div class="drawer-head"><h2 id="chart-heading">The shape of your manuscript</h2><div class="chart-controls"><label class="sr-only" for="chart-scope">Chart scope</label><select id="chart-scope"><option value="whole">Entire manuscript</option><option value="visible">Visible passage + buffer</option></select><label class="sr-only" for="chart-interval">Chart interval</label><select id="chart-interval"><option value="0">Auto interval</option><option value="25">≈25 words / point</option><option value="50">≈50 words / point</option><option value="250">≈250 words / point</option><option value="1000">≈1,000 words / point</option></select><button id="close-chart" class="icon-button" type="button" aria-label="Close analysis chart">×</button></div></div><div id="chart-series" class="chart-series" role="group" aria-label="Chart lines"></div><div class="chart-plot"><svg id="analysis-chart" viewBox="0 0 1000 160" preserveAspectRatio="none" role="img" aria-label="Manuscript analysis chart"></svg><span id="chart-empty">Analyze a manuscript to explore its shape.</span></div><div class="chart-readout"><input id="chart-cursor" type="range" min="0" max="0" value="0" aria-label="Explore chart points"><span id="chart-tooltip"></span><button id="chart-jump" type="button" class="text-button">Go to passage ↗</button></div><p id="chart-note" class="chart-note">Each line uses its own relative scale. Values appear above; these are pacing signals, not a pacing score.</p></div></div>
       </section>
     </main>
-
-    <footer class="app-footer"><span>Your writing stays on this device. Analysis runs locally in WebAssembly.</span><div><a href="https://writerslogic.com/">WritersLogic</a><a href="https://writersproof.com/">WritersProof</a><a href="https://holographic-memory.com/">Holographic Memory</a><a href="https://github.com/writerslogic/bluepencil#install">Install bluepencil <span aria-hidden="true">↗</span></a></div></footer>
+    <footer class="app-footer"><span>Your writing stays on this device · English prose · text files up to 16 MiB</span><div><a href="https://writerslogic.github.io/bluepencil/docs/quality.html">About the observations</a><a href="https://github.com/writerslogic/bluepencil#install">Install bluepencil ↗</a></div></footer>
   </div>
   <script type="module" src="./playground.js"></script>
 </body>

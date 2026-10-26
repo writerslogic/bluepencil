@@ -23,11 +23,11 @@
 
 bluepencil is a local prose linter for fiction and long-form writing. It finds specific lines to reconsider: a word that echoes eight words later, five sentences in a row that open with "She", or a passage that slips from past tense into present. Its deterministic analyses need no account or network connection; optional model-backed commands send text to the provider you configure only when you invoke them.
 
-[![The bluepencil playground shows a manuscript beside focused, line-specific findings.](assets/playground.png)](https://writerslogic.github.io/bluepencil/)
+[![The bluepencil writing desk shows inline observations and a manuscript analysis chart.](assets/playground.png)](https://writerslogic.github.io/bluepencil/)
 
-[Try the live playground](https://writerslogic.github.io/bluepencil/) — paste a passage, open a text file, or switch between fiction and screenplay samples. Analysis runs in your browser.
+[Try the writing desk](https://writerslogic.github.io/bluepencil/) — paste a manuscript or open a text file up to 16 MiB. Findings appear in the editor and follow the visible passage as you scroll. Toggle observation types, click a highlight for its explanation, or explore sentence length, paragraph length, dialogue, and other signals in the manuscript chart. Analysis runs locally in a background worker. See the [browser guide](https://writerslogic.github.io/bluepencil/docs/browser.html).
 
-Twenty-seven analyses are deterministic and instant. Three more, and an `--explain` flag, hand the measured evidence to a language model for the judgments a word list cannot make: whether a character still sounds like themselves in chapter nine, whether the eye colour established in chapter one survives to the end, whether a scene earns its length. Those are opt-in and clearly marked; nothing else depends on them.
+Twenty-seven analyses are deterministic and run locally. Three more, and an `--explain` flag, hand the measured evidence to a language model for the judgments a word list cannot make: whether a character still sounds like themselves in chapter nine, whether the eye colour established in chapter one survives to the end, whether a scene earns its length. Those are opt-in and clearly marked; nothing else depends on them.
 
 > **You give it:** a folder of chapters in Markdown.
 > **It gives you back:** 11.6 hedges per thousand words with each one located, "gravel" repeated four words apart on line 18, three chapters that open on the same word, a Flesch-Kincaid grade per section, and an exit code your CI can gate on.
