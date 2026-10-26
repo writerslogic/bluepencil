@@ -75,6 +75,10 @@ fn every_migrated_command_prints_a_valid_schema() {
         assert!(output.status.success(), "`schema {command}` failed: {}", String::from_utf8_lossy(&output.stderr));
         let schema: serde_json::Value = serde_json::from_slice(&output.stdout)
             .unwrap_or_else(|e| panic!("`schema {command}` did not print valid JSON: {e}"));
+        assert_eq!(
+            schema["$schema"], "https://json-schema.org/draft/2020-12/schema",
+            "`schema {command}` changed JSON Schema dialect"
+        );
         assert!(schema["type"].is_string(), "`schema {command}` missing a top-level `type`: {schema}");
     }
 }
