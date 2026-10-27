@@ -25,7 +25,7 @@ bluepencil is a local prose linter for fiction and long-form writing. It finds s
 
 [![The bluepencil writing desk shows inline observations and a manuscript analysis chart.](assets/playground.png)](https://writerslogic.github.io/bluepencil/)
 
-[Try the writing desk](https://writerslogic.github.io/bluepencil/) — paste a manuscript or open a text file up to 16 MiB. Findings appear in the editor and follow the visible passage as you scroll. Toggle observation types, click a highlight for its explanation, or explore sentence length, paragraph length, dialogue, and other signals in the manuscript chart. Analysis runs locally in a background worker. See the [browser guide](https://writerslogic.github.io/bluepencil/docs/browser.html).
+[Try the writing desk](https://writerslogic.github.io/bluepencil/) — paste a manuscript or open a text file up to 16 MiB. Findings appear in the editor and follow the visible passage as you scroll. Toggle observation types, click a highlight for its explanation, or explore sentence length, paragraph length, dialogue, and other signals on aligned chart tracks. Sample within chapters or zoom to individual paragraphs and sentences. Analysis runs locally in a background worker. See the [browser guide](https://writerslogic.github.io/bluepencil/docs/browser.html).
 
 Twenty-seven analyses are deterministic and run locally. Three more, and an `--explain` flag, hand the measured evidence to a language model for the judgments a word list cannot make: whether a character still sounds like themselves in chapter nine, whether the eye colour established in chapter one survives to the end, whether a scene earns its length. Those are opt-in and clearly marked; nothing else depends on them.
 

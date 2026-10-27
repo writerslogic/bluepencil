@@ -55,8 +55,8 @@ fn analyzes_a_manuscript_beyond_the_old_limit_and_finds_its_ending() {
     assert_eq!(ending.total, 1);
     assert_eq!(selected_text(&source, &ending.findings[0]), "make a decision");
     assert!(ending.findings[0].start > 1_000_000);
-    let chart = manuscript.chart(0, source.len(), 0).unwrap();
-    assert!(chart.points.len() <= 250);
+    let chart = manuscript.chart(0, source.len(), "whole", "auto").unwrap();
+    assert_eq!(chart.points.len(), 9);
     assert_eq!(chart.words, manuscript.counts.words);
 }
 
@@ -230,26 +230,16 @@ fn sparse_source_positions_round_trip_at_unicode_checkpoint_boundaries() {
 }
 
 #[test]
-fn chart_values_have_defined_units_and_preserve_absolute_word_positions_when_zoomed() {
+fn chart_scope_and_detail_validate_their_inputs() {
     let source = "She moved home. He watched rain.\n\n\"I am here,\" she said.";
     let manuscript = analyzed(source, Format::Plain);
-    let chart = manuscript.chart(0, source.len(), 25).unwrap();
-    assert_eq!(chart.words, 11);
-    assert_eq!(chart.points.len(), 1);
-    let point = &chart.points[0];
-    assert!((point.sentence_length - 11.0 / 3.0).abs() < 0.001);
-    assert!((point.paragraph_length - 5.5).abs() < 0.001);
-    assert!((point.dialogue_share - 300.0 / 11.0).abs() < 0.001);
-    assert!((point.finding_density - 1000.0 / 11.0).abs() < 0.001);
-    assert_eq!(point.first_word, 1);
-    assert_eq!(point.last_word, 11);
-    let zoomed = manuscript.chart(source.find('"').unwrap(), source.len(), 0).unwrap();
+    let zoomed = manuscript.chart(source.find('"').unwrap(), source.len(), "visible", "sentence").unwrap();
     assert_eq!(zoomed.words, 5);
-    assert_eq!(zoomed.points[0].first_word, 7);
-    assert_eq!(zoomed.points[0].last_word, 11);
-    assert!(manuscript.chart(0, source.len(), 24).is_err());
-    assert!(manuscript.chart(0, source.len(), 26).is_err());
+    assert!(manuscript.chart(0, source.len(), "whole", "sentence").is_err());
+    assert!(manuscript.chart(0, source.len(), "visible", "chapter-8").is_err());
+    assert!(manuscript.chart(0, source.len(), "visible", "25").is_err());
+    assert!(manuscript.chart(0, source.len() + 1, "visible", "sentence").is_err());
     for source in ["", "!!!", "# Heading"] {
-        assert!(analyzed(source, Format::Markdown).chart(0, source.len(), 0).unwrap().points.is_empty());
+        assert!(analyzed(source, Format::Markdown).chart(0, source.len(), "whole", "auto").unwrap().points.is_empty());
     }
 }

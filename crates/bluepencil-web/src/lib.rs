@@ -37,8 +37,8 @@ impl Manuscript {
         serialize(&self.inner.visible(from, to, enabled).map_err(js_error)?)
     }
 
-    pub fn chart(&self, from: usize, to: usize, interval: usize) -> Result<String, JsValue> {
-        serialize(&self.inner.chart(from, to, interval).map_err(js_error)?)
+    pub fn chart(&self, from: usize, to: usize, scope: &str, detail: &str) -> Result<String, JsValue> {
+        serialize(&self.inner.chart(from, to, scope, detail).map_err(js_error)?)
     }
 }
 

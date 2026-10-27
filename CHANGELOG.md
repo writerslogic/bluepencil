@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- Manuscript charts use separate aligned tracks with labeled scales, chapter-aware detail, and sentence or paragraph samples when following the visible passage. Explicit detail choices no longer disappear behind a 250-node cap. The editor uses more width on large displays.
 - Repetition and rhythm runs now stop at headings. Person-shift runs no longer combine different grammatical persons. Browser filters suppress conversational perception words and sensory descriptions, and large-document results are retrieved throughout the text.
 - Mobile import errors remain visible; the editor supports undo and downloading revisions.
 

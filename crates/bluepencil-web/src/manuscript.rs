@@ -1,3 +1,6 @@
+mod chart;
+
+use chart::{Chart, ChartData};
 use std::collections::{BTreeMap, HashSet};
 
 use bluepencil_core::analysis::{
@@ -31,6 +34,7 @@ pub struct Summary {
     total_findings: usize,
     rule_counts: BTreeMap<&'static str, usize>,
     length: usize,
+    chapters: usize,
 }
 
 #[derive(Serialize)]
@@ -50,36 +54,6 @@ pub struct VisibleReview {
     rule_counts: BTreeMap<&'static str, usize>,
 }
 
-#[derive(Serialize)]
-pub struct ChartPoint {
-    from: usize,
-    to: usize,
-    first_word: usize,
-    last_word: usize,
-    sentence_length: f64,
-    paragraph_length: f64,
-    dialogue_share: f64,
-    finding_density: f64,
-    sentence_variation: f64,
-}
-
-#[derive(Serialize)]
-pub struct Chart {
-    points: Vec<ChartPoint>,
-    interval: usize,
-    words: usize,
-}
-
-struct MetricSentence {
-    span: Span,
-    words: usize,
-    first_word: usize,
-    paragraph: usize,
-    paragraph_words: usize,
-    dialogue_words: usize,
-    findings: usize,
-}
-
 pub struct BrowserManuscript {
     doc: Document,
     lex: Lexicons,
@@ -88,7 +62,7 @@ pub struct BrowserManuscript {
     stage: usize,
     source_index: SourceIndex,
     max_ends: Vec<usize>,
-    metrics: Vec<MetricSentence>,
+    chart_data: Option<ChartData>,
 }
 
 pub fn parse_format(format: &str) -> Result<Format, &'static str> {
@@ -130,7 +104,7 @@ impl BrowserManuscript {
             stage: 0,
             source_index: SourceIndex::new(source),
             max_ends: Vec::new(),
-            metrics: Vec::new(),
+            chart_data: None,
         })
     }
 
@@ -247,27 +221,7 @@ impl BrowserManuscript {
             max_end = max_end.max(finding.span.end);
             self.max_ends.push(max_end);
         }
-        let mut first_word = 1;
-        for (index, paragraph) in self.doc.paragraphs.iter().enumerate() {
-            let paragraph_words = paragraph.word_count();
-            for sentence in &paragraph.sentences {
-                if sentence.words.is_empty() {
-                    continue;
-                }
-                let first = self.findings.partition_point(|finding| finding.span.start < sentence.span.start);
-                let last = self.findings.partition_point(|finding| finding.span.start < sentence.span.end);
-                self.metrics.push(MetricSentence {
-                    span: sentence.span,
-                    words: sentence.words.len(),
-                    first_word,
-                    paragraph: index,
-                    paragraph_words,
-                    dialogue_words: sentence.words.iter().filter(|word| self.doc.in_dialogue(word.span)).count(),
-                    findings: last - first,
-                });
-                first_word += sentence.words.len();
-            }
-        }
+        self.chart_data = Some(ChartData::new(&self.doc, &self.findings));
     }
 
     pub fn summary(&self) -> Result<Summary, &'static str> {
@@ -281,6 +235,7 @@ impl BrowserManuscript {
             total_findings: self.findings.len(),
             rule_counts: rule_counts(self.findings.iter()),
             length: self.source_index.length,
+            chapters: self.chart_data.as_ref().expect("completed analysis has chart data").chapter_count(),
         })
     }
 
@@ -315,56 +270,15 @@ impl BrowserManuscript {
         Ok(VisibleReview { findings, total, truncated: total > 1000, rule_counts })
     }
 
-    pub fn chart(&self, from: usize, to: usize, interval: usize) -> Result<Chart, &'static str> {
+    pub fn chart(&self, from: usize, to: usize, scope: &str, detail: &str) -> Result<Chart, &'static str> {
         let span = self.byte_range(from, to)?;
-        if ![0, 25, 50, 250, 1000].contains(&interval) {
-            return Err("Choose an available chart interval.");
-        }
-        let first = self.metrics.partition_point(|sentence| sentence.span.end <= span.start);
-        let last = self.metrics.partition_point(|sentence| sentence.span.start < span.end);
-        let sentences = &self.metrics[first.min(last)..last];
-        let words: usize = sentences.iter().map(|sentence| sentence.words).sum();
-        let interval = if interval == 0 { words.div_ceil(100).div_ceil(25) * 25 } else { interval };
-        let interval = interval.max(words.div_ceil(250).div_ceil(25) * 25).max(25);
-        let mut points = Vec::new();
-        let mut start = 0;
-        while start < sentences.len() {
-            let mut end = start;
-            let mut count = 0;
-            while end < sentences.len() && count < interval {
-                count += sentences[end].words;
-                end += 1;
-            }
-            let bucket = &sentences[start..end];
-            let mut paragraphs = HashSet::new();
-            let mut paragraph_words = 0;
-            let mut dialogue = 0;
-            let mut findings = 0;
-            let mut squares = 0.0;
-            for sentence in bucket {
-                if paragraphs.insert(sentence.paragraph) {
-                    paragraph_words += sentence.paragraph_words;
-                }
-                dialogue += sentence.dialogue_words;
-                findings += sentence.findings;
-                squares += (sentence.words as f64).powi(2);
-            }
-            let mean = count as f64 / bucket.len() as f64;
-            let variance = (squares / bucket.len() as f64 - mean * mean).max(0.0);
-            points.push(ChartPoint {
-                from: self.source_index.position(&self.doc.source, bucket[0].span.start).utf16,
-                to: self.source_index.position(&self.doc.source, bucket[bucket.len() - 1].span.end).utf16,
-                first_word: bucket[0].first_word,
-                last_word: bucket[bucket.len() - 1].first_word + bucket[bucket.len() - 1].words.saturating_sub(1),
-                sentence_length: mean,
-                paragraph_length: paragraph_words as f64 / paragraphs.len() as f64,
-                dialogue_share: if count == 0 { 0.0 } else { dialogue as f64 * 100.0 / count as f64 },
-                finding_density: if count == 0 { 0.0 } else { findings as f64 * 1000.0 / count as f64 },
-                sentence_variation: if mean == 0.0 { 0.0 } else { variance.sqrt() * 100.0 / mean },
-            });
-            start = end;
-        }
-        Ok(Chart { points, interval, words })
+        self.chart_data.as_ref().expect("completed analysis has chart data").view(
+            &self.doc.source,
+            &self.source_index,
+            span,
+            scope,
+            detail,
+        )
     }
 
     pub fn legacy_analysis(&self) -> LegacyAnalysis {
