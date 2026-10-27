@@ -20,21 +20,23 @@ At most 1,000 enabled observations are drawn in one buffered view, with a notice
 
 ## Manuscript chart
 
-**Analysis chart** opens a panel below the editor. Its toolbar switches each line independently.
+**Analysis chart** opens a panel below the editor. Its toolbar switches each metric independently. **Tracks** gives each metric its own aligned row, with actual values and a labeled scale, so lines remain visible. **Overlay** compares their shapes on independent relative scales. All tracks share a position in the text and a cursor.
 
 | Line | Value at a node |
 | --- | --- |
 | Sentence length | Mean words per sentence |
-| Paragraph length | Mean full paragraph length for distinct paragraphs touching the interval |
+| Paragraph length | Mean full paragraph length for distinct paragraphs touching the sample |
 | Dialogue share | Percentage of words inside dialogue |
-| Finding density | All observations starting in the interval, per 1,000 words |
-| Sentence variation | Standard deviation of sentence lengths divided by their mean, expressed as a percentage |
+| Finding density | All observations starting in the sample, per 1,000 words |
+| Sentence variation | Variation over the current and up to four preceding sentences, averaged across the sample; standard deviation divided by mean length, as a percentage |
 
-Nodes group consecutive sentences into approximate word intervals. **Auto interval** adapts to the text; explicit intervals are available, with a larger interval used when needed to keep the chart below 250 nodes. A very long sentence can occupy a node by itself. Values include the full sentences touching the selected passage.
+**Entire manuscript** defaults to eight samples within each detected chapter, with chapter boundaries labeled below the chart. Choose four, eight, or sixteen samples per chapter, or a 128-, 256-, or 512-sample overview. Samples group consecutive sentences; short chapters have fewer nodes. Conventional standalone chapter labels and Markdown or Fountain headings establish boundaries. Without chapter structure, automatic detail uses a 256-sample overview.
 
-**Entire manuscript** gives an overview, with the visible passage and buffer shaded. **Visible passage + buffer** follows the editor as you scroll. Each line is scaled independently within the displayed range. Hover over a node or use the point slider to read actual values and units. Click the chart or select **Go to passage** to move the editor there. These are measurable pacing signals, not a score for narrative pace. Finding density includes all rule types, independently of which highlights are enabled.
+**Visible passage + buffer** follows the editor as you scroll, with a node for every sentence by default. Switch to **Every paragraph** to see full paragraph samples. Values include the full sentences or paragraphs touching the selected passage. Detail choices are remembered separately for the two views. Explicit choices are honored; a view exceeding 8,192 samples asks for a coarser setting or a smaller passage.
 
-Panels resize the editor instead of covering it. On small screens, opening one panel closes the other to preserve room for reading.
+Shading marks the visible passage and its surrounding buffer. Hover over a node or use the point slider to read its values, sentence and paragraph positions, and word range. Click the chart or select **Go to passage** to move the editor there. Closely spaced markers may be thinned on screen, while every sample remains in the line and accessible through the slider. These are measurable pacing signals, not a score for narrative pace. Finding density includes all rule types, independently of which highlights are enabled. Sentence variation resets at chapter boundaries.
+
+Panels resize the editor instead of covering it. On small screens, opening one panel closes the other to preserve room for reading. The reading area expands on wide displays, up to an 1,800-pixel content column.
 
 ## Editing and limits
 

@@ -44,7 +44,7 @@ await writeFile(resolve(destination, "index.html"), html);
 await writeFile(resolve(destination, "playground.js"), `
 const destination = new URL("./", import.meta.url);
 destination.searchParams.set("v", ${JSON.stringify(appFile)});
-if (document.getElementById("finding-toggles")) {
+if (document.getElementById("finding-toggles") && document.getElementById("chart-detail")) {
   await import(${JSON.stringify(`./${appFile}`)});
 } else {
   const notice = document.getElementById("status") || document.createElement("p");

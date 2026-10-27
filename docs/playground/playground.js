@@ -297,11 +297,12 @@ function requestChart() {
   if (!viewport) { scheduleViewport(); return; }
   const from = chart.scope() === "whole" ? 0 : viewport.from;
   const to = chart.scope() === "whole" ? summary.length : viewport.to;
-  const interval = chart.interval();
-  const key = `${revision}:${chart.scope()}:${from}:${to}:${interval}`;
+  const detail = chart.detail();
+  const key = `${revision}:${chart.scope()}:${from}:${to}:${detail}`;
   if (key === lastChartKey) return;
   lastChartKey = key;
-  queueRequest("chart", { from, to, interval });
+  chart.loading();
+  queueRequest("chart", { from, to, scope: chart.scope(), detail });
 }
 
 function applyVisible(result) {
@@ -390,6 +391,7 @@ function run() {
         cancelButton.hidden = true;
         if (notice.dataset.kind === "progress") notice.hidden = true;
         summary = data.summary;
+        chart.describe(summary);
         stats.textContent = `${number(summary.words)} words · ${number(summary.total_findings)} observations`;
         scheduleViewport();
       } else if (data.type === "visible") {
@@ -397,7 +399,7 @@ function run() {
       } else if (data.type === "chart") {
         finishRequest("chart", data, () => chart.update(data.result));
       } else if (data.type === "error") {
-        if (data.request) finishRequest(data.request, data, () => showError(data.message));
+        if (data.request) finishRequest(data.request, data, () => data.request === "chart" ? chart.error(data.message) : showError(data.message));
         else {
           stopWorker();
           clearAnalysis("Your text is still in the editor.");

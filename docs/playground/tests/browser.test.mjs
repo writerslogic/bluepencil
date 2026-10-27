@@ -99,6 +99,10 @@ test("chart lines toggle, follow scrolling when zoomed, and navigate back into t
   await open(text, 5200);
   await page.locator("#toggle-chart").click();
   await page.waitForFunction(() => document.querySelectorAll(".chart-line").length === 3);
+  for (const count of [128, 256, 512]) {
+    await page.locator("#chart-detail").selectOption(`overview-${count}`);
+    await page.waitForFunction((expected) => document.getElementById("analysis-chart").dataset.points === String(expected) && !document.querySelector(".chart-content.is-loading"), count);
+  }
   const whole = await page.locator('.chart-line[data-series="sentence_length"]').getAttribute("d");
   await page.locator('[data-series="paragraph_length"][aria-pressed]').click();
   assert.equal(await page.locator('.chart-line[data-series="paragraph_length"]').count(), 0);
@@ -114,6 +118,63 @@ test("chart lines toggle, follow scrolling when zoomed, and navigate back into t
   await page.locator("#chart-jump").click();
   await page.waitForFunction(() => document.querySelector(".cm-scroller").scrollTop < 1000);
   assert.doesNotMatch(await page.locator("#analysis-chart").innerHTML(), /NaN|Infinity/);
+});
+
+test("chapter detail and sentence or paragraph zoom use distinct samples on aligned tracks", async () => {
+  const chapter = Array.from({ length: 32 }, (_, index) => index % 2
+    ? 'She waited beside the door. "Come inside," he said.'
+    : "Rain fell. The storm shook the narrow house.").join("\n\n");
+  const text = ["One", "Two", "Three"].map((name) => `Chapter ${name}\n\n${chapter}`).join("\n\n");
+  await open(text, 822);
+  await page.locator("#toggle-chart").click();
+  await page.waitForFunction(() => document.getElementById("analysis-chart").dataset.points === "24");
+  assert.match(await page.locator("#chart-resolution").textContent(), /8 samples \/ chapter/);
+  assert.ok(await page.locator(".chart-chapter-label").count() > 0);
+  for (const [detail, count] of [["chapter-4", 12], ["chapter-16", 48]]) {
+    await page.locator("#chart-detail").selectOption(detail);
+    await page.waitForFunction((expected) => document.getElementById("analysis-chart").dataset.points === String(expected), count);
+  }
+  for (const metric of ["finding_density", "sentence_variation"]) await page.locator(`#chart-series [data-series="${metric}"]`).click();
+  assert.equal(await page.locator(".chart-track-label").count(), 5);
+  await page.waitForFunction(() => {
+    const tracks = [...document.querySelectorAll(".chart-line")].map((line) => line.getBBox());
+    return tracks.length === 5 && tracks.every((track, index) => index === 0 || track.y > tracks[index - 1].y + tracks[index - 1].height);
+  });
+  await page.locator('#chart-layout [data-layout="overlay"]').click();
+  assert.equal(await page.locator("#chart-plot").getAttribute("data-layout"), "overlay");
+  assert.equal(await page.locator(".chart-line").count(), 5);
+  await page.locator('#chart-layout [data-layout="tracks"]').click();
+  await page.locator("#chart-scope").selectOption("visible");
+  await page.waitForFunction(() => document.getElementById("analysis-chart").dataset.resolution === "sentence" && !document.querySelector(".chart-content.is-loading"));
+  const sentences = Number(await page.locator("#analysis-chart").getAttribute("data-points"));
+  await page.locator("#chart-detail").selectOption("paragraph");
+  await page.waitForFunction(() => document.getElementById("analysis-chart").dataset.resolution === "paragraph" && !document.querySelector(".chart-content.is-loading"));
+  const paragraphs = Number(await page.locator("#analysis-chart").getAttribute("data-points"));
+  assert.ok(paragraphs > 5 && paragraphs < sentences);
+  await page.locator("#chart-scope").selectOption("whole");
+  assert.equal(await page.locator("#chart-detail").inputValue(), "chapter-16");
+  await page.waitForFunction(() => document.getElementById("analysis-chart").dataset.points === "48");
+  await page.locator("#chart-scope").selectOption("visible");
+  assert.equal(await page.locator("#chart-detail").inputValue(), "paragraph");
+  await page.waitForFunction(() => document.getElementById("analysis-chart").dataset.resolution === "paragraph");
+  await page.locator("#chart-cursor").focus();
+  await page.locator("#chart-cursor").press("End");
+  assert.match(await page.locator("#chart-cursor").getAttribute("aria-valuetext"), /Sentence length:.*words\/sentence.*Sentence variation:/);
+  assert.doesNotMatch(await page.locator("#analysis-chart").innerHTML(), /NaN|Infinity/);
+});
+
+test("the editor uses more reading width on wide viewports", async () => {
+  const widths = [];
+  for (const width of [1280, 1920, 2560]) {
+    await page.setViewportSize({ width, height: 1080 });
+    widths.push(await page.locator(".cm-content").evaluate((element) => {
+      const style = getComputedStyle(element);
+      return element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    }));
+  }
+  assert.ok(widths[1] > widths[0] + 400);
+  assert.ok(widths[2] >= widths[1]);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
 });
 
 test("pasting a multi-megabyte manuscript analyzes its ending", { timeout: 90_000 }, async () => {
@@ -172,7 +233,8 @@ test("a manuscript at the 16 MiB boundary retains its ending and chart", { timeo
   await page.waitForFunction(() => document.querySelector('.cm-finding[data-rule="nominal"]'));
   await page.locator("#toggle-chart").click();
   await page.waitForFunction(() => document.querySelectorAll(".chart-line").length === 3);
-  assert.ok(await page.locator(".chart-node").count() <= 750);
+  assert.equal(await page.locator("#analysis-chart").getAttribute("data-points"), "256");
+  assert.ok(await page.locator(".chart-node").count() <= 768);
 });
 
 test("cancellation and edits cannot publish stale manuscript results", async () => {
@@ -241,7 +303,7 @@ test("versioned assets avoid mixed builds and the legacy entry preserves an exis
   const legacy = await context.newPage();
   await legacy.route(`${server.url}/legacy.html`, (route) => route.fulfill({
     contentType: "text/html",
-    body: '<textarea id="source">UNSAVED MANUSCRIPT</textarea><p id="status">Loading</p><script type="module" src="./playground.js"></script>',
+    body: '<textarea id="source">UNSAVED MANUSCRIPT</textarea><div id="finding-toggles"></div><p id="status">Loading</p><script type="module" src="./playground.js"></script>',
   }));
   await legacy.goto(`${server.url}/legacy.html`);
   await legacy.getByRole("link", { name: "Open the updated editor" }).waitFor();

@@ -10,10 +10,10 @@ self.onmessage = async ({ data }) => {
     try {
       if (!Number.isSafeInteger(data.from) || !Number.isSafeInteger(data.to) || data.from < 0 || data.to < data.from) throw new Error("Choose a passage within this manuscript.");
       if (data.type === "visible" && (!Array.isArray(data.enabled) || data.enabled.length > 15 || data.enabled.some((rule) => typeof rule !== "string"))) throw new Error("Choose available finding types.");
-      if (data.type === "chart" && ![0, 25, 50, 250, 1000].includes(data.interval)) throw new Error("Choose an available chart interval.");
+      if (data.type === "chart" && (!["whole", "visible"].includes(data.scope) || !["auto", "chapter-4", "chapter-8", "chapter-16", "overview-128", "overview-256", "overview-512", "paragraph", "sentence"].includes(data.detail))) throw new Error("Choose a chart scope and detail setting.");
       const result = data.type === "visible"
         ? manuscript.visible(data.from, data.to, JSON.stringify(data.enabled))
-        : manuscript.chart(data.from, data.to, data.interval);
+        : manuscript.chart(data.from, data.to, data.scope, data.detail);
       self.postMessage({ type: data.type, id: data.id, query: data.query, result: JSON.parse(result) });
     } catch (error) {
       self.postMessage({ type: "error", request: data.type, id: data.id, query: data.query, message: String(error) });
