@@ -136,11 +136,10 @@ test("chapter detail and sentence or paragraph zoom use distinct samples on alig
   }
   for (const metric of ["finding_density", "sentence_variation"]) await page.locator(`#chart-series [data-series="${metric}"]`).click();
   assert.equal(await page.locator(".chart-track-label").count(), 5);
-  const tracks = await page.locator(".chart-line").evaluateAll((lines) => lines.map((line) => {
-    const box = line.getBBox();
-    return { top: box.y, bottom: box.y + box.height };
-  }));
-  assert.ok(tracks.every((track, index) => index === 0 || track.top > tracks[index - 1].bottom));
+  await page.waitForFunction(() => {
+    const tracks = [...document.querySelectorAll(".chart-line")].map((line) => line.getBBox());
+    return tracks.length === 5 && tracks.every((track, index) => index === 0 || track.y > tracks[index - 1].y + tracks[index - 1].height);
+  });
   await page.locator('#chart-layout [data-layout="overlay"]').click();
   assert.equal(await page.locator("#chart-plot").getAttribute("data-layout"), "overlay");
   assert.equal(await page.locator(".chart-line").count(), 5);
