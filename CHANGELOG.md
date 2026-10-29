@@ -10,6 +10,10 @@ All notable changes to this project are documented here. The format follows [Kee
 - A manuscript chart with independently selectable sentence length, paragraph length, dialogue share, finding density, and sentence variation; zoom to the visible passage or navigate from a chart node to the text.
 - Background analysis with progress and cancellation for text files up to 16 MiB, plus repeated phrases, wordy constructions, dialogue tags, and conservative tense/person observations in the browser.
 
+### Changed
+
+- `bluepencil-node` carries the workspace version instead of its own. A test fails CI when the npm package, its lockfile, the generated `index.js`, or the VS Code extension disagree with `Cargo.toml`, and `release-node.yml` publishes on every release tag. `bluepencil-node@0.2.0` was published from `main` after 0.2.0 and includes the analysis fixes below.
+
 ### Fixed
 
 - Manuscript charts use separate aligned tracks with labeled scales, chapter-aware detail, and sentence or paragraph samples when following the visible passage. Explicit detail choices no longer disappear behind a 250-node cap. The editor uses more width on large displays.
