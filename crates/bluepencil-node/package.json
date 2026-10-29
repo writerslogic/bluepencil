@@ -1,6 +1,6 @@
 {
   "name": "bluepencil-node",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "license": "MIT OR Apache-2.0",
   "author": "David Condrey",
   "description": "Prose analysis for writers: echoes, repeats, rhythm, dialogue, readability, and more. Native Node.js bindings for bluepencil-core.",
